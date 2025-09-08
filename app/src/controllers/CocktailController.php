@@ -5,35 +5,35 @@ use Flender\Dash\Enums\Method;
 
 class CocktailController extends Controller {
 
-    #[Route(Method::GET, "/cocktails")]
-    // liste des cocktails
-    // ajouter un param de recherche pour filtrer et recherche par nom
+    // #[Route(Method::GET, "/cocktails")]
+    // // liste des cocktails
+    // // ajouter un param de recherche pour filtrer et recherche par nom
 
-    #[Route(Method::POST, "/cocktail")]
-    // Créer un Cocktail
+    // #[Route(Method::POST, "/cocktail")]
+    // // Créer un Cocktail
 
-    #[Route(Method::PATCH, "/cocktail/:id")]
-    // Editer un cocktail
+    // #[Route(Method::PATCH, "/cocktail/:id")]
+    // // Editer un cocktail
 
-    #[Route(Method::DELETE, "/cocktail/:id")]
-    // Supprimer un cocktail
+    // #[Route(Method::DELETE, "/cocktail/:id")]
+    // // Supprimer un cocktail
 
-    #[Route(Method::POST, "/cocktail/:id/like")]
-    // Liker un cocktail
+    // #[Route(Method::POST, "/cocktail/:id/like")]
+    // // Liker un cocktail
 
-    #[Route(Method::DELETE, "/cocktail/:id/like")]
-    // Supprimer le like d'un cocktail
+    // #[Route(Method::DELETE, "/cocktail/:id/like")]
+    // // Supprimer le like d'un cocktail
 
-    #[Route(Method::GET, "/cocktails/like")]
-    // Voir mes cocktails likés
+    // #[Route(Method::GET, "/cocktails/like")]
+    // // Voir mes cocktails likés
 
-    #[Route(Method::POST, "/cocktail/:id/rate/:value")]
-    // Noter un cocktail
+    // #[Route(Method::POST, "/cocktail/:id/rate/:value")]
+    // // Noter un cocktail
 
-    #[Route(Method::PATCH, "/cocktail/:id/rate/:value")]
-    // Modifier la note d'un cocktail
+    // #[Route(Method::PATCH, "/cocktail/:id/rate/:value")]
+    // // Modifier la note d'un cocktail
 
-    #[Route(Method::DELETE, "/cocktail/:id/rate")]
+    // #[Route(Method::DELETE, "/cocktail/:id/rate")]
     // Supprimer la note d'un cocktail
 
 

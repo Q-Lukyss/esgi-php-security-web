@@ -8,13 +8,13 @@ class UserController extends Controller {
     // Connexion / Inscription
     // Edition Profil Pour utilisateur connecté
 
-    #[Route(Method::GET, "/profile/:id")]
-    // mon profil
+    // #[Route(Method::GET, "/profile/:id")]
+    // // mon profil
 
-    #[Route(Method::PATCH, "/profile/:id")]
-    // edit profil
+    // #[Route(Method::PATCH, "/profile/:id")]
+    // // edit profil
 
-    #[Route(Method::POST, "/profile")]
+    // #[Route(Method::POST, "/profile")]
     // inscription
 
 

@@ -1,7 +1,12 @@
 <?php
+
+namespace App\Controllers;
+
 use Flender\Dash\Classes\Controller;
 use Flender\Dash\Attributes\Route;
 use Flender\Dash\Enums\Method;
+use Flender\Dash\Response\JsonResponse;
+use PDO;
 
 class HomeController extends Controller {
 
@@ -11,6 +16,11 @@ class HomeController extends Controller {
         return $this->render("index", [
             "title" => "Accueil",
         ]);
+    }
+
+    #[Route(Method::GET, "/test/:id/id/:user")]
+    public function test(string $user, PDO $pdo, int $id) {
+        return new JsonResponse(["user" => $user, "id" => $id]);
     }
 
     #[Route(Method::GET, "/about")]

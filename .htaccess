@@ -4,6 +4,10 @@ DirectoryIndex app/public/index.php
 RewriteEngine On
 RewriteBase /lpm/
 
+RewriteCond %{REQUEST_URI} ^/lpm/(.+)$
+RewriteCond %{DOCUMENT_ROOT}/lpm/app/public/%1 -f
+RewriteRule ^(.*)$ app/public/$1 [L]
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ app/public/index.php [QSA,L]

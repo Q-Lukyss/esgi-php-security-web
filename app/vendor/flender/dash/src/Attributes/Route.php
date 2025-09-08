@@ -14,6 +14,15 @@ class Route {
     }
 
     public function get_path(): string {
+        return $this->path;
+    }
+
+    public function set_callback($callback):self {
+        $this->callback = $callback;
+        return $this;
+    }
+
+    public function get_config(): array {
         if (!is_array($this->callback)) {
             $routeReflexion = new \ReflectionFunction($this->callback);
         } else {
@@ -31,15 +40,16 @@ class Route {
             $change_type_to_regex[$param->getName()] = $regex;
         }
 
-        return preg_replace_callback('/:(\w+)/', function($matches) use ($change_type_to_regex) {
+        $regex =  preg_replace_callback('/:(\w+)/', function($matches) use ($change_type_to_regex) {
             $param_name = $matches[1];
             return $change_type_to_regex[$param_name];
         }, $this->path);
-    }
 
-    public function set_callback($callback):self {
-        $this->callback = $callback;
-        return $this;
+        $parameters = array_map(fn($param) => [
+            $param->getName(), $param->getType()?->getName() ?? 'string'
+        ], $routeReflexion->getParameters());
+
+        return [$regex, $parameters];
     }
 
     // public function get_path(): string {
