@@ -1,3 +1,2 @@
 .env
-/nginx/ssl/dev.crt/*
-/nginx/ssl/dev.key/*
+/nginx/ssl/*
