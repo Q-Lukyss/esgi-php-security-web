@@ -6,6 +6,6 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'Zolnarian\\Lpm\\' => array($baseDir . '/src'),
     'Flender\\Dash\\' => array($vendorDir . '/flender/dash/src'),
+    'App\\' => array($baseDir . '/src'),
 );
