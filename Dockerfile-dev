@@ -1,0 +1,40 @@
+FROM php:8.3-fpm-alpine
+
+ENV NVM_DIR=/usr/local/nvm
+
+ARG user
+ARG uid
+ARG NODE_VERSION=22.13.1
+
+COPY ./php.ini.prod /usr/local/etc/php/
+
+# Bash en shell par défaut
+# RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+
+RUN apk --no-cache add \
+    nginx \
+    openssl \
+    nano \
+    git \
+    curl \
+    libzip-dev \
+    libpng-dev \
+    oniguruma-dev \
+    libxml2-dev \
+    npm \
+    zip \
+    unzip \
+    && docker-php-ext-install pdo_mysql mbstring exif bcmath gd zip \
+    && apk del git
+
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+
+RUN addgroup $user \
+&&  adduser -D -u $uid -G $user -h /home/$user $user
+
+RUN mkdir -p /home/$user/.composer && \
+    chown -R $user:$user /home/$user
+
+WORKDIR /opt/framework
+
+USER $user
