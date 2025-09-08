@@ -15,6 +15,8 @@ class Router {
     private array $container = [];
     private string $base_path = '';
     private string $static_path;
+    private string $cache_router = '';
+    private bool $used_cache = false;
     
     public static string $APP_BASE = '';
     public static string $TEMPLATES_DIRECTORY = '';
@@ -56,7 +58,21 @@ class Router {
         return $routes;
     }
 
+    public function set_cache_router(string $path):self {
+        $this->cache_router = self::$APP_BASE . DIRECTORY_SEPARATOR . ltrim($path, '/\\');
+        if (file_exists($this->cache_router)) {
+            $this->routes = json_decode(file_get_contents($this->cache_router), true);
+            $this->used_cache = true;
+        }
+        return $this;
+    }
+
     public function set_controllers_directory(string $directory = null):self {
+        if ($this->used_cache) {
+            $this->log("Using cached routes, skipping controller directory scan.");
+            return $this;
+        }
+
         if ($directory === null) {
             $directory = self::$CONTROLLER_DIRECTORY;
         } else {
@@ -99,6 +115,10 @@ class Router {
             ini_set('display_errors', '1');
             ini_set('display_startup_errors', '1');
             error_reporting(E_ALL);
+        }
+
+        if ($this->cache_router && !$this->used_cache) {
+            file_put_contents($this->cache_router, json_encode($this->routes));
         }
 
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -144,7 +164,12 @@ class Router {
                         if ($value === null) {
                             continue;
                         }
-                        settype($value, $type);
+                        $out = settype($value, $type);
+                        if ($out === false) {
+                            $this->log("Failed to set type for parameter: $name with value: $value to type: $type");
+                            continue;
+                        }
+
                         $typed_params[$name] = $value;
                     }
 

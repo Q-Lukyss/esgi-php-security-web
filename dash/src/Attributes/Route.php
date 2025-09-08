@@ -52,10 +52,6 @@ class Route {
         return [$regex, $parameters];
     }
 
-    // public function get_path(): string {
-    //     return $this->path;
-    // }
-
     public function get_method(): Method {
         return $this->method;
     }

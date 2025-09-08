@@ -11,6 +11,7 @@ $app->set_base_path('/lpm')
     ->set_static_path('/static', __DIR__ . '/../public')
     ->set_404_callback(fn() => new Response('Custom Not Found Page', 404))
     ->set_error_callback(fn() => new Response('Custom Error Page', 500))
+    ->set_cache_router("/cache/router.json")
     ->set_debug();
 
 $app->set_controllers_directory();
