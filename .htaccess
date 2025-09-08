@@ -1,0 +1,9 @@
+# Définit le fichier à charger quand on accède au répertoire
+DirectoryIndex app/public/index.php
+
+RewriteEngine On
+RewriteBase /lpm/
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ app/public/index.php [QSA,L]

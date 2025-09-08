@@ -1,0 +1,47 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "3bde38805128db101675c8e6a4974807",
+    "packages": [
+        {
+            "name": "flender/dash",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../dash",
+                "reference": "f3bd8b889b1a949e2289ce67ddef305a581984f9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Flender\\Dash\\": "src/"
+                }
+            },
+            "authors": [
+                {
+                    "name": "Tristan Deloeil"
+                }
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": {
+        "flender/dash": 20
+    },
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {
+        "php": ">=8.0"
+    },
+    "platform-dev": {},
+    "plugin-api-version": "2.6.0"
+}

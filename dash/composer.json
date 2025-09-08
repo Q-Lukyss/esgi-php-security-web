@@ -1,0 +1,15 @@
+{
+    "name": "flender/dash",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Flender\\Dash\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Tristan Deloeil"
+        }
+    ],
+    "require": {}
+}

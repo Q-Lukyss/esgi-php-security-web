@@ -1,0 +1,22 @@
+{
+    "name": "zolnarian/lpm",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Zolnarian\\Lpm\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.0",
+        "flender/dash": "dev-main"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../dash",
+            "options": {
+                "symlink": true
+            }
+        }
+    ]
+}
