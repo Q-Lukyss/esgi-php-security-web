@@ -2,6 +2,8 @@
 
 namespace Flender\Dash\Classes;
 
+use Flender\Dash\Attributes\Route;
+use Flender\Dash\Enums\Method;
 use Flender\Dash\Response\Response;
 
 class Router {
@@ -66,7 +68,7 @@ class Router {
     }
 
     public function get(string $path, callable|array $callback):self {
-        $this->register_route(new Route(Route::GET, $path, $callback));
+        $this->register_route(new Route(Method::GET, $path, $callback));
         return $this;
     }
 

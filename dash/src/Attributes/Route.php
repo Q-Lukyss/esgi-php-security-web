@@ -1,20 +1,16 @@
 <?php
-namespace Flender\Dash\Classes;
+namespace Flender\Dash\Attributes;
+
+use Flender\Dash\Enums\Method;
 
 #[\Attribute(\Attribute::TARGET_METHOD)]
 class Route {
 
-    public const GET = 'GET';
-    public const POST = 'POST';
-    public const PUT = 'PUT';
-    public const DELETE = 'DELETE';
-
-
-    private string $method;
+    private Method $method;
     private string $path;
     private $callback;
 
-    public function __construct(string $method, string $path, callable $callback) {
+    public function __construct(Method $method, string $path, callable $callback) {
         $this->method = $method;
         // $this->path = $path;
         $this->callback = $callback;
