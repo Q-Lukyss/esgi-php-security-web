@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Entity\User;
 use Flender\Dash\Classes\Controller;
 use Flender\Dash\Attributes\Route;
 use Flender\Dash\Enums\Method;
@@ -21,6 +22,11 @@ class HomeController extends Controller {
     #[Route(Method::GET, "/test/:id/id/:user")]
     public function test(string $user, PDO $pdo, int $id) {
         return new JsonResponse(["user" => $user, "id" => $id]);
+    }
+
+    #[Route(Method::GET, "/test")]
+    public function test_2(User $user, PDO $pdo) {
+        return new JsonResponse($user);
     }
 
     #[Route(Method::GET, "/about")]

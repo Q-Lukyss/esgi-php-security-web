@@ -11,15 +11,15 @@ $app->set_base_path('/lpm')
     ->set_static_path('/static', __DIR__ . '/../public')
     ->set_404_callback(fn() => new Response('Custom Not Found Page', 404))
     ->set_error_callback(fn() => new Response('Custom Error Page', 500))
+    ->remove_trailing_slash()
     ->set_cache_router("/cache/router.json")
     ->set_debug();
 
 $app->set_controllers_directory();
 
 $app->set_container([
-    PDO::class => function() {
-        return new PDO('sqlite:' . Router::$APP_BASE . DIRECTORY_SEPARATOR . 'database.db');
-    }
+    PDO::class => fn() => new PDO('sqlite:' . Router::$APP_BASE . DIRECTORY_SEPARATOR . 'database.db'),
+    // Other services
 ]);
 
 $app->run();

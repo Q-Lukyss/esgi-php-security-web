@@ -178,6 +178,7 @@ class Router {
                     // Add from container for method parameters not in route
                     if (count($typed_params) < count($params_info)) {
                         foreach ($params_info as [$name, $type]) {
+                            // Get from container if not already set
                             if (!array_key_exists($name, $typed_params) && isset($this->container[$type])) {
                                 $container_value = $this->container[$type];
                                 if (is_callable($container_value)) {
@@ -186,6 +187,26 @@ class Router {
                                     $typed_params[$name] = $container_value;
                                 }
                             }
+                            // Is Entity ?
+                            if (str_starts_with($type, 'App\\Entity\\') && class_exists($type) && is_subclass_of($type, Entity::class)) {
+                                // If Get request, try to get values from query parameters
+                                if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                                    $query_params = $_GET;
+                                } else {
+                                    // Else try to get values from body (assuming JSON)
+                                    $body = file_get_contents('php://input');
+                                    $query_params = json_decode($body, true) ?? [];
+                                }
+                                $entity_instance = new $type(...$query_params);
+                                $errors = $entity_instance->verify();
+                                if (count($errors) > 0) {
+                                    $handler = fn() => new Response('Entity validation failed: ' . implode(', ', $errors), 400);
+                                    $typed_params = [];
+                                    break 2; // Break both foreach and if
+                                }
+                                $typed_params[$name] = $entity_instance;
+                            }
+
                         }
                     }
 
@@ -277,6 +298,18 @@ class Router {
 
     public function set_error_callback(callable|array $callback):self {
         $this->routes[self::ERROR_ROUTE] = $callback;
+        return $this;
+    }
+
+    public function remove_trailing_slash(bool $remove = true):self {
+        if ($remove && substr($_SERVER['REQUEST_URI'], -1) === '/' && $_SERVER['REQUEST_URI'] !== '/') {
+            $new_url = rtrim($_SERVER['REQUEST_URI'], '/');
+            if ($this->base_path && !str_starts_with($new_url, $this->base_path)) {
+                $new_url = $this->base_path . $new_url;
+            }
+            header("Location: $new_url", true, 301);
+            exit();
+        }
         return $this;
     }
 
