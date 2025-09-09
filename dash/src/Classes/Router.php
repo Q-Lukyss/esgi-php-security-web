@@ -6,6 +6,7 @@ use Closure;
 use Composer\Autoload\ClassLoader;
 use Flender\Dash\Attributes\Route;
 use Flender\Dash\Enums\Method;
+use Flender\Dash\Interfaces\IVerifiable;
 use Flender\Dash\Response\Response;
 use ReflectionClass;
 
@@ -198,7 +199,10 @@ class Router {
                                     $query_params = json_decode($body, true) ?? [];
                                 }
                                 $entity_instance = new $type(...$query_params);
-                                $errors = $entity_instance->verify();
+                                if (is_subclass_of($type, IVerifiable::class)) {
+                                    /** @var IVerifiable $entity_instance */
+                                    $errors = $entity_instance->verify();
+                                }
                                 if (count($errors) > 0) {
                                     $handler = fn() => new Response('Entity validation failed: ' . implode(', ', $errors), 400);
                                     $typed_params = [];

@@ -3,10 +3,11 @@
 namespace App\Entity;
 
 use Flender\Dash\Classes\Entity;
+use Flender\Dash\Interfaces\IVerifiable;
 
-class User extends Entity {
+class User extends Entity implements IVerifiable {
 
-    public function __construct(public string $name) {
+    public function __construct(public string $name, public int $age = 3) {
     }
 
     public function verify(): array {

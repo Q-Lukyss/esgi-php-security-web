@@ -13,7 +13,7 @@ $app->set_base_path('/lpm')
     ->set_error_callback(fn() => new Response('Custom Error Page', 500))
     ->remove_trailing_slash()
     ->set_cache_router("/cache/router.json")
-    ->set_debug();
+    ->set_debug(false);
 
 $app->set_controllers_directory();
 
