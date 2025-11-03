@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>PotionMAGIQUE - Créez et Partagez vos Cocktails</title>
+    <title><?= $title ?></title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="Free HTML Templates" name="keywords">
     <meta content="Free HTML Templates" name="description">
@@ -27,12 +27,20 @@
 </head>
 
 <body>
-    
 
     <?php
     include 'components/topbar.html';
     include 'components/navbar.php';
-    include 'components/main_image.html';
+    ?>
+
+    <!-- MAIN content -->
+    <?php include 'components/cocktails-table.php'; ?>
+
+    <!-- END -->
+    
+
+
+    <?php
     include 'components/footer.html';
     include 'components/backtotop.html';
     ?>
