@@ -7,6 +7,7 @@ use Composer\Autoload\ClassLoader;
 use Exception;
 use Flender\Dash\Attributes\Route;
 use Flender\Dash\Enums\Method;
+use Flender\Dash\Interfaces\ISecurity;
 use Flender\Dash\Interfaces\IVerifiable;
 use Flender\Dash\Response\JsonResponse;
 use Flender\Dash\Response\Response;
@@ -48,7 +49,6 @@ class Router {
      */
     private ?string $cache_router = null;
     private bool $is_new_cache_router = false;
-    
     
     /**
      * Is debug mode enabled ?
@@ -143,7 +143,6 @@ class Router {
                 $routes_from_controller = $this->get_routes_from_controller($class_namespace);
 
                 foreach ($routes_from_controller as $route) {
-                    
                     [$regex, $parameters] = $route->get_config();
                     $path = $route->get_path();
                     if (!key_exists($path, $routes)) {
@@ -155,6 +154,7 @@ class Router {
                     $routes[$path]["methods"][$route->get_method()->value] = [
                         "callback" => $route->get_callback(),
                         "parameters" => $parameters,
+                        "middlewares" => $route->get_middlewares()
                     ];
                 }
             }
@@ -186,7 +186,7 @@ class Router {
         error_reporting(E_ALL);
     }
 
-    private function call(array|Closure $handler, array $parameters = [], array $matched_params = []) {
+    private function call(array|Closure $handler, array $parameters = [], array $matched_params = []): ?Response {
         // If is a array (Controller) extract the callback
         if (is_array($handler) && is_string($handler[0]) && class_exists($handler[0])) {
             [$class, $method] = $handler;
@@ -226,11 +226,10 @@ class Router {
                     }
                     $params[$name] = $entity_instance;
                 }
-            } else{
+            } else {
                 $params[$name] = $this->container[$type]();
             }
         } 
-        
 
         try {
             $response = $handler(...$params);
@@ -239,14 +238,10 @@ class Router {
             $this->log("error" . print_r($e, true));
             die();
             $this->call($this->routes[self::ERROR_ROUTE]);
-            return;
+            return null;
         }
-        if ($response instanceof Response) {
-            $response->send();
-            return;
-        }
-        echo $response;
 
+        return $response;
     }
 
     public function run(): void {
@@ -270,9 +265,10 @@ class Router {
 
         // Add Request & Response to container
         $request = Request::from_global();
+        $response = new Response();
         $this->container = [
             ...$this->container,
-            Response::class => fn() => new Response(),
+            Response::class => fn() => $response,
             Request::class => fn() => $request
         ];
 
@@ -309,142 +305,18 @@ class Router {
         }
 
         // Finally, call the handler
-        $this->call($r["callback"], $r["parameters"], $match_params);
+        foreach ($r["middlewares"] as $middleware) {
+            $optionnal_res = $this->call($middleware["callback"], $middleware["parameters"]);
+            if ($optionnal_res !== null) {
+                $optionnal_res->send();
+                return;
+            }
+
+        }
+
+        $res = $this->call($r["callback"], $r["parameters"], $match_params);
+        $res->send();
         return;
-
-
-        // $handler = $this->routes[self::NOT_FOUND_ROUTE];
-        // $match_params = [];
-
-        // foreach ($this->routes["routes"] as $route) {
-        //     $route_path = $route["regex"];
-        //     $pattern = '#^' . $route_path . '$#';
-        //     $this->log("Trying pattern: $pattern with path: $path");
-        //     if (preg_match($pattern, $path, $match_params)) {
-        //         $handler = $route["methods"][$method] ?? null;
-
-        //         if (!$handler) {
-        //             // Return 405 Method Not Allowed
-        //             $handler = $this->routes[self::ERROR_ROUTE];
-        //         }
-
-        //         if (is_array($handler) && is_string($handler[0]) && class_exists($handler[0]) && method_exists($handler[0], $handler[1])) {
-        //             [$class, $method] = $handler;
-        //             $instance = new $class();
-        //             $match_params = [...array_slice($match_params, 1)];
-        //             $this->log("Matched raw parameters: " . json_encode($match_params));
-
-        //             // Match parameters with types
-        //             $params_info = $route["parameters"];
-        //             $this->log("Parameters info: " . json_encode($params_info));
-        //             $typed_params = [];
-        //             $id = 0;
-        //             foreach ($params_info as [$name, $type]) {
-        //                 $this->log("Processing parameter: $name of type $type");
-        //                 if ($type === 'string' || $type === 'int' || $type === 'float') {
-        //                     $value = $match_params[$id++] ?? null;
-        //                 } else {
-        //                     $value = null;
-        //                 }
-        //                 if ($value === null) {
-        //                     continue;
-        //                 }
-        //                 $out = settype($value, $type);
-        //                 if ($out === false) {
-        //                     $this->log("Failed to set type for parameter: $name with value: $value to type: $type");
-        //                     continue;
-        //                 }
-
-        //                 $typed_params[$name] = $value;
-        //             }
-
-        //             $this->log("Typed parameters before container: " . json_encode($typed_params));
-
-        //             // Add from container for method parameters not in route
-        //             if (count($typed_params) < count($params_info)) {
-        //                 foreach ($params_info as [$name, $type]) {
-        //                     // Get from container if not already set
-        //                     if (!array_key_exists($name, $typed_params) && isset($this->container[$type])) {
-        //                         $container_value = $this->container[$type];
-        //                         if (is_callable($container_value)) {
-        //                             $typed_params[$name] = $container_value();
-        //                         } else {
-        //                             $typed_params[$name] = $container_value;
-        //                         }
-        //                     }
-        //                     // Is Entity ?
-        //                     if (str_starts_with($type, 'App\\Entity\\') && class_exists($type) && is_subclass_of($type, Entity::class)) {
-        //                         // If Get request, try to get values from query parameters
-        //                         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        //                             $query_params = $_GET;
-        //                         } else {
-        //                             // Else try to get values from body (assuming JSON)
-        //                             $body = file_get_contents('php://input');
-        //                             $query_params = json_decode($body, true) ?? [];
-        //                         }
-        //                         $entity_instance = new $type(...$query_params);
-        //                         if (is_subclass_of($type, IVerifiable::class)) {
-        //                             /** @var IVerifiable $entity_instance */
-        //                             $errors = $entity_instance->verify();
-        //                         }
-        //                         if (count($errors) > 0) {
-        //                             $handler = fn() => new Response('Entity validation failed: ' . implode(', ', $errors), 400);
-        //                             $typed_params = [];
-        //                             break 2; // Break both foreach and if
-        //                         }
-        //                         $typed_params[$name] = $entity_instance;
-        //                     }
-
-        //                 }
-        //             }
-
-        //             $this->log("Matched parameters: " . json_encode($typed_params));
-
-        //             $handler = $instance->$method(...$typed_params);
-        //             if ($handler instanceof Response) {
-        //                 $handler->send();
-        //                 return;
-        //             }
-        //             echo $handler;
-        //             return;
-        //         }
-
-
-        //         // Transform $match_params to typed values
-
-        //         // Stocker callback || (class name + method)
-
-        //         // Add values from container if needed
-        //         break;
-        //     }
-        // }
-
-        // // Send 404
-        // if (!$handler) {
-        //     $this->log("No handler found for path: $path");
-        //     $handler = $this->routes[self::NOT_FOUND_ROUTE];
-        //     $this->log("Using 404 handler:". print_r($this->routes, true));
-        // }
-
-        // if (is_callable($handler)) {
-        //     $response = $handler(...array_values($match_params));
-        //     if ($response instanceof Response) {
-        //         $response->send();
-        //         return;
-        //     }
-        //     echo $response;
-        //     return;
-        // } else {
-        //     $this->log("Not a callable");
-        // }
-
-        // $response = $handler(...array_values($match_params));
-        // if ($response instanceof Response) {
-        //     $response->send();
-        //     return;
-        // }
-        // echo $response;
-        
     }
 
     public function set_container(array $container):self {
@@ -505,10 +377,10 @@ class Router {
         return $this;
     }
 
-    public function set_static_path(string $path):self {
-        $this->static_path = $path;
-        return $this;
-    }
+    // public function set_static_path(string $path):self {
+    //     $this->static_path = $path;
+    //     return $this;
+    // }
     
 
 }

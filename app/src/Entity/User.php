@@ -16,8 +16,7 @@ class User extends Entity implements IVerifiable {
             return ["name" => "Name cannot be empty"];
         }
 
-        return [
-        ];
+        return [];
     }
 
 }

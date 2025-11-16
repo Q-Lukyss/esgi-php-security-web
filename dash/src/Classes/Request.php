@@ -23,6 +23,10 @@ class Request {
         return $this->headers;
     }
 
+    public function get_header(string $header):?string {
+        return $this->headers[$header] ?? null;
+    } 
+
     public function get_method():string {
         return $this->method;
     }

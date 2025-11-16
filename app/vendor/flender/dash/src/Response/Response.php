@@ -18,6 +18,16 @@ class Response {
         $this->sended = false;
     }
 
+    public function merge(Response $response): static {
+        $this->headers = [
+            ...$this->headers,
+            ...$response->get_headers()
+        ];
+        // $this->body = $response->get_body();
+        // $this->status = $response->get_status();
+        return $this;
+    }
+
     public function set_body(string $body):void {
         $this->body = $body;
     }
@@ -35,6 +45,19 @@ class Response {
             $this->add_header($header);
         }
     }
+
+    public function get_body():string {
+        return $this->body;
+    }
+
+    public function get_status():int {
+        return $this->status;
+    }
+
+    public function get_headers():array {
+        return $this->headers;
+    }
+
 
 
     public function send():void {

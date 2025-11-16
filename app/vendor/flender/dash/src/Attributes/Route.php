@@ -1,20 +1,43 @@
 <?php
 namespace Flender\Dash\Attributes;
 
+use Exception;
 use Flender\Dash\Enums\Method;
 
 #[\Attribute(\Attribute::TARGET_METHOD)]
 class Route {
 
-
-    public function __construct(private Method $method, private string $path, private $callback = null) {
-
-        // path to regex
-        // Use reflection to get method parameters and match them if string/int/float...
+    public function __construct(private Method $method, private string $path, private $callback = null, private array $middlewares = []) {
     }
 
     public function get_path(): string {
         return $this->path;
+    }
+
+    public function get_middlewares(): array {
+        return array_map(function($it) {
+            if (!class_exists($it)) {
+                throw new Exception("Class $it does not exist.");
+            }
+            $rc = new \ReflectionClass($it);
+            // Get method 'handle'
+            if (!$rc->hasMethod('handle')) {
+               throw new Exception("Class $it do not implement IMiddleware");
+            }
+            $rm = $rc->getMethod('handle');
+            return 
+            
+            [
+                "callback" => [ $it, "handle" ],
+                "parameters" => array_map(function($param) {
+                    return [ 
+                        $param->getName(),
+                        $param->getType()?->getName()
+                    ];
+                }, $rm->getParameters())
+            ];
+
+        }, $this->middlewares);
     }
 
     public function set_callback($callback):self {

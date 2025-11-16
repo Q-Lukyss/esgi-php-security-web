@@ -2,17 +2,21 @@
 
 namespace App\Controllers;
 
+use App\Classes\SessionUser;
 use App\Entity\User;
+use App\Middlewares\SecurityMiddleware;
 use Flender\Dash\Classes\Controller;
 use Flender\Dash\Attributes\Route;
+use Flender\Dash\Classes\Request;
 use Flender\Dash\Enums\Method;
+use Flender\Dash\Interfaces\ISecurity;
 use Flender\Dash\Response\JsonResponse;
+use Flender\Dash\Response\Response;
 use PDO;
 
 class HomeController extends Controller {
 
-
-    #[Route(Method::GET, "/")]
+    #[Route(Method::GET, "/", middlewares: [SecurityMiddleware::class])]
     public function index() {
         return $this->render("index", [
             "title" => "Accueil",
@@ -20,7 +24,15 @@ class HomeController extends Controller {
     }
 
     #[Route(Method::GET, "/test/:id/id/:user")]
-    public function test(string $user, PDO $pdo, int $id) {
+    public function test(PDO $pdo, int $id, string $user, Request $req, Response $res, ISecurity $sec) {
+        $query = <<<SQL
+            SELECT * from my_table
+        SQL;
+        $query = "SELECT * from my_table"; 
+        $res->add_headers(
+            "x-test: test",
+            "x-test2: " . $sec->verify_session("token")
+        );
         return new JsonResponse(["user" => $user, "id" => $id]);
     }
 
@@ -29,12 +41,6 @@ class HomeController extends Controller {
         return new JsonResponse($user);
     }
 
-    #[Route(Method::GET, "/about")]
-    public function about() {
-        return $this->render("about", [
-            "title" => "A propos",
-        ]);
-    }
 
     #[Route(Method::GET, "/contact")]
     public function contact() {
