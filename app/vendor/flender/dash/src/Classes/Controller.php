@@ -2,6 +2,8 @@
 
 namespace Flender\Dash\Classes;
 
+use Flender\Dash\Response\HtmlResponse;
+
 abstract class Controller {
  
     public function render(string $template, array $data = []) {
@@ -10,7 +12,7 @@ abstract class Controller {
         $path = Router::$TEMPLATES_DIRECTORY . DIRECTORY_SEPARATOR . $template . ".php";
         include $path;
         $content = ob_get_clean();
-        return $content;
+        return new HtmlResponse($content);
     }
 
 }

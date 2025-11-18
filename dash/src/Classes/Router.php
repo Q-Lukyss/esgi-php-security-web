@@ -311,7 +311,7 @@ class Router {
                 $optionnal_res->send();
                 return;
             }
-
+            $res = $res->merge($optionnal_res);
         }
 
         $res = $this->call($r["callback"], $r["parameters"], $match_params);
@@ -323,6 +323,7 @@ class Router {
         $this->container = $container;
         return $this;
     }
+
     public function set_base_path(string $base_path):self {
         $this->base_path = $base_path;
         return $this;

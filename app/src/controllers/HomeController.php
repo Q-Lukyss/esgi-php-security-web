@@ -2,7 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Classes\SessionUser;
 use App\Entity\User;
 use App\Middlewares\SecurityMiddleware;
 use Flender\Dash\Classes\Controller;
@@ -18,6 +17,7 @@ class HomeController extends Controller {
 
     #[Route(Method::GET, "/", middlewares: [SecurityMiddleware::class])]
     public function index() {
+        // throw new ErrorException("test");
         return $this->render("index", [
             "title" => "Accueil",
         ]);

@@ -6,6 +6,7 @@ class Request {
 
     private array $headers;
     private string $method;
+    private array $cookies;
     private string $path;
 
     public static function from_global():Request {
@@ -17,6 +18,7 @@ class Request {
         $this->headers = getallheaders();
         $this->method = $data['REQUEST_METHOD'];
         $this->path = parse_url($data['REQUEST_URI'], PHP_URL_PATH);
+        $this->cookies = $_COOKIE;
     }
 
     public function get_headers():array {
@@ -33,6 +35,14 @@ class Request {
 
     public function get_path():string {
         return $this->path;
+    }
+
+    public function get_cookie(string $name): ?string {
+        return $this->cookies[$name] ?? NULL;
+    }
+
+    public function get_cookies(): array {
+        return $this->cookies;
     }
 
 }
