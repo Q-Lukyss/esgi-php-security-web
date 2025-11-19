@@ -6,28 +6,43 @@ use Flender\Dash\Attributes\Route;
 
 class ControllerLoader
 {
-    public function __construct(private ?ILogger $logger) {}
+    public function __construct(private ?ILogger $logger)
+    {
+    }
 
-    public function get_routes_from_cache(string $file_path): array
+    /**
+     * 
+     * @param string $file_path
+     * @return RouterTree|null
+     */
+    public function get_router_tree_from_cache(string $file_path)
     {
         if (!is_file($file_path)) {
             $this->logger->warning("Router cache not found", [
                 "file" => $file_path,
             ]);
-            return [];
+            return null;
         }
         $content = file_get_contents($file_path);
         $json = json_decode($content, true);
         if (json_last_error()) {
             $this->logger->warning("Router cache decode error", [
-                "jso_error" => json_last_error_msg(),
+                "json_error" => json_last_error_msg(),
             ]);
-            return [];
+            return null;
         }
-        return $json;
+
+        $schemes = RouteScheme::fromArray($json);
+        return new RouterTree($schemes);
     }
 
-    public function get_routes_from_directory(string $directory): array
+    /**
+     * 
+     * @param string $directory
+     * @throws \InvalidArgumentException
+     * @return RouterTree
+     */
+    public function get_router_tree_from_directory(string $directory)
     {
         if (!is_dir($directory)) {
             throw new \InvalidArgumentException(
@@ -36,7 +51,7 @@ class ControllerLoader
         }
 
         $files = glob($directory . "/*.php");
-        return array_reduce(
+        return new RouterTree(array_reduce(
             $files,
             function ($routes, $file) {
                 $file_name = pathinfo($file, PATHINFO_FILENAME);
@@ -49,29 +64,25 @@ class ControllerLoader
                     );
 
                     foreach ($routes_from_controller as $route) {
-                        [$regex, $parameters] = $route->get_config();
-                        $path = $route->get_path();
-                        if (!key_exists($path, $routes)) {
-                            $routes[$path] = [
-                                "regex" => $regex,
-                                "methods" => [],
-                            ];
+                        $regex = $route->get_regex();
+                        if (array_key_exists($regex, $routes) === false) {
+                            $routes[$regex] = [];
                         }
-                        $routes[$path]["methods"][
-                            $route->get_method()->value
-                        ] = [
-                            "callback" => $route->get_callback(),
-                            "parameters" => $parameters,
-                            "middlewares" => $route->get_middlewares(),
-                        ];
+
+                        $routes[$regex][$route->get_method()->value] = new RouteScheme($route->get_method(), $route->get_middlewares(), $route->get_callback(), $route->get_parameters());
                     }
                 }
                 return $routes;
             },
             [],
-        );
+        ));
     }
 
+    /**
+     * Summary of get_routes_from_controller
+     * @param string $controller
+     * @return Route[]
+     */
     private function get_routes_from_controller(string $controller): array
     {
         $reflexion = new \ReflectionClass($controller);

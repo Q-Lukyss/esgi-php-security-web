@@ -5,47 +5,80 @@ use Exception;
 use Flender\Dash\Enums\Method;
 
 #[\Attribute(\Attribute::TARGET_METHOD)]
-class Route {
+class Route
+{
 
-    public function __construct(private Method $method, private string $path, private $callback = null, private array $middlewares = []) {
+    private array $callback = [];
+    private ?string $regex = null;
+    private ?array $params = null;
+
+    public function __construct(private Method $method, private string $path, private array $middlewares = [], private ?object $rate_limiter = null)
+    {
     }
 
-    public function get_path(): string {
+    public function get_regex(): string
+    {
+        if ($this->regex === NULL) {
+            $this->apply_config();
+        }
+        return $this->regex;
+    }
+
+    public function get_parameters(): array
+    {
+        if ($this->params === NULL) {
+            $this->apply_config();
+        }
+        return $this->params;
+    }
+
+    private function apply_config()
+    {
+        [$regex, $params] = $this->get_config();
+        $this->regex = $regex;
+        $this->params = $params;
+    }
+
+    /* public function jsonSerialize() {
+        [$regex, $params] = $this->get_config();
+        return [
+            "method" => $this->method->value,
+            "middlewares" => json_encode($this->middlewares),
+            "path" => $this->path,
+            "parameters" => $params,
+        ];
+    } */
+
+    public function get_path(): string
+    {
         return $this->path;
     }
 
-    public function get_middlewares(): array {
-        return array_map(function($it) {
+    public function get_middlewares(): array
+    {
+        return array_map(function ($it) {
             if (!class_exists($it)) {
                 throw new Exception("Class $it does not exist.");
             }
             $rc = new \ReflectionClass($it);
             // Get method 'handle'
-            if (!$rc->hasMethod('handle')) {
-               throw new Exception("Class $it do not implement IMiddleware");
+            if (!$rc->hasMethod('__invoke')) {
+                throw new Exception("Class $it do not implement __invoke");
             }
-            $rm = $rc->getMethod('handle');
-            return 
-            
-            [
-                "callback" => [ $it, "handle" ],
-                "parameters" => array_map(function($param) {
-                    return [ 
-                        $param->getName(),
-                        $param->getType()?->getName()
-                    ];
-                }, $rm->getParameters())
-            ];
+            return [$it, "__invoke"];
 
         }, $this->middlewares);
     }
 
-    public function set_callback($callback):self {
+    public function set_callback(array $callback): self
+    {
+        // Add some tests
         $this->callback = $callback;
         return $this;
     }
 
-    public function get_config(): array {
+    private function get_config(): array
+    {
         if (!is_array($this->callback)) {
             $routeReflexion = new \ReflectionFunction($this->callback);
         } else {
@@ -63,22 +96,25 @@ class Route {
             $change_type_to_regex[$param->getName()] = $regex;
         }
 
-        $regex =  preg_replace_callback('/:(\w+)/', function($matches) use ($change_type_to_regex) {
+        $regex = preg_replace_callback('/:(\w+)/', function ($matches) use ($change_type_to_regex) {
             $param_name = $matches[1];
             return $change_type_to_regex[$param_name];
         }, $this->path);
 
         $parameters = array_map(fn($param) => [
-            $param->getName(), $param->getType()?->getName() ?? 'string'
+            $param->getName(),
+            $param->getType()?->getName() ?? 'string'
         ], $routeReflexion->getParameters());
 
         return [$regex, $parameters];
     }
 
-    public function get_method(): Method {
+    public function get_method(): Method
+    {
         return $this->method;
     }
-    public function get_callback() {
+    public function get_callback()
+    {
         return $this->callback;
     }
 
