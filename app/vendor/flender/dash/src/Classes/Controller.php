@@ -5,7 +5,6 @@ namespace Flender\Dash\Classes;
 use Flender\Dash\Response\HtmlResponse;
 
 abstract class Controller {
- 
     public function render(string $template, array $data = []) {
         extract($data);
         ob_start();
@@ -14,5 +13,4 @@ abstract class Controller {
         $content = ob_get_clean();
         return new HtmlResponse($content);
     }
-
 }

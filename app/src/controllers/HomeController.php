@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Entity\User;
+use App\Middlewares\RateLimiter;
 use App\Middlewares\SecurityMiddleware;
 use Flender\Dash\Classes\Controller;
 use Flender\Dash\Attributes\Route;
@@ -15,7 +16,7 @@ use PDO;
 
 class HomeController extends Controller {
 
-    #[Route(Method::GET, "/", middlewares: [SecurityMiddleware::class])]
+    #[Route(Method::GET, "/", middlewares: [SecurityMiddleware::class], rate_limiter: new RateLimiter(10, 210))]
     public function index() {
         // throw new ErrorException("test");
         return $this->render("index", [

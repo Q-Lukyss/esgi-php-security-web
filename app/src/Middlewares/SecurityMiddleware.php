@@ -2,6 +2,7 @@
 
 namespace App\Middlewares;
 
+use App\Classes\Security;
 use App\Classes\SessionUser;
 use App\Entity\User;
 use Flender\Dash\Classes\Container;
@@ -15,10 +16,10 @@ class SecurityMiddleware
 {
     const string SESSION_NAME = "lpm-sid";
 
-    function handle(
+    function __invoke(
         Request $req,
         Response $res,
-        ISecurity $security,
+        Security $security,
         PDO $pdo,
         Container $container,
     ) {
@@ -32,22 +33,8 @@ class SecurityMiddleware
             );
         }
 
-        $stmt = $pdo->prepare(
-            <<<SQL
-                SELECT id, username, email
-                FROM users
-                WHERE sid = :sid
-                AND token_expiration > NOW()
-            SQL
-            ,
-        );
-
-        $stmt->execute([
-            "sid" => $sid,
-        ]);
-
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$user) {
+        $user = $security->get_user_from_sid($sid);
+        if ($user === null) {
             $res->set_status(401);
             $res->set_body(
                 json_encode(["error" => "Invalid or expired token"]),
