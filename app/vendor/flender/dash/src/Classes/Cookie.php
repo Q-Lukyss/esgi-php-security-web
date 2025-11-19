@@ -8,10 +8,10 @@ class Cookie implements \Stringable{
     const string SAMESITE_LAX = "Lax";
     const string SAMESITE_STRICT = "Strict";
 
-    public function __construct(private string $name, private string $value, private int $expiration = 0, private string $path = "", private string $domain = "", bool $secure = false, bool $httponly = false, private string $samesite = self::SAMESITE_LAX) {}
+    public function __construct(private string $name, private string $value, private int $expiration = 0, private string $path = "", private string $domain = "", private bool $secure = false, private bool $httponly = false, private string $samesite = self::SAMESITE_LAX) {}
 
-    public function expiration(int $time): self {
-        $this->time = $time;
+    public function expiration(int $expiration): self {
+        $this->expiration = $expiration;
         return $this;
     }
 
