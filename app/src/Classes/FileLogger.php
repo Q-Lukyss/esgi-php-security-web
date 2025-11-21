@@ -4,21 +4,24 @@ namespace App\Classes;
 
 use Flender\Dash\Classes\ILogger;
 
-class Logger implements ILogger
+class FileLogger implements ILogger
 {
+
+    private $handle;
+    public function __construct(string $file) {
+        // if file not exists, crate it
+        $this->handle = fopen($file, "w");
+    }
+
     private function log(
         string $level,
         string $message,
         array $context = [],
     ): void {
-        echo "<pre style='background:#333;color:#0f0;padding:10px;'>" .
-            $level .
-            "<br>" .
-            htmlspecialchars($message) .
-            ($context !== []
-                ? "<br>---<br>" . json_encode($context, JSON_PRETTY_PRINT)
-                : "") .
-            "</pre>";
+        $timestamp = gmdate("Y-m-d\TH:i:s\Z");
+        $context_formatted = json_encode($context);
+        $log = "$timestamp $level $message $context_formatted" . PHP_EOL;
+        fwrite($this->handle, $log);
     }
 
     public function debug(string $message, array $context = []): void

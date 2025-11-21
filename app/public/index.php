@@ -2,8 +2,9 @@
 
 require_once __DIR__ . "/../vendor/autoload.php";
 
-use App\Classes\Logger;
+use App\Classes\FileLogger;
 use App\Classes\ProjectEnv;
+use App\Middlewares\LoggerMiddleware;
 use Flender\Dash\Classes\Container;
 use Flender\Dash\Classes\EnvLoader;
 use Flender\Dash\Classes\Router;
@@ -13,12 +14,13 @@ $env = EnvLoader::get_env(dirname(__DIR__), ProjectEnv::class);
 
 $app = (new Router())->set_base_path("/lpm")
 
-    ->remove_trailing_slash(false)
-    ->set_cache_router("/cache/router.json")
+    ->remove_trailing_slash(true)
+    //->set_cache_router("/cache/router.json")
 
-    ->set_logger(new Logger())
+    ->set_logger(new FileLogger("../cache/app.log"))
     ->set_debug(true)
 
+    ->add_global_middleware([LoggerMiddleware::class, "__invoke"])
     ->add_global_middleware(function (Response $req) {
         // All headers
         $req->set_headers([
