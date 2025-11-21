@@ -52,8 +52,6 @@ class Container
             return $this->create_class($key);
         }
 
-        var_dump("?? $key");
-
         return null;
     }
 

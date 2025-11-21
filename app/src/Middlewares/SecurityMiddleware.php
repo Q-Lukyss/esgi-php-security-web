@@ -6,9 +6,12 @@ use App\Classes\Security;
 use App\Classes\SessionUser;
 use App\Entity\User;
 use Flender\Dash\Classes\Container;
+use Flender\Dash\Classes\Permissions;
+use Flender\Dash\Classes\Problem;
 use Flender\Dash\Classes\Request;
 use Flender\Dash\Interfaces\ISecurity;
 use Flender\Dash\Response\JsonResponse;
+use Flender\Dash\Response\ProblemeResponse;
 use Flender\Dash\Response\Response;
 use PDO;
 
@@ -18,34 +21,28 @@ class SecurityMiddleware
 
     function __invoke(
         Request $req,
-        Response $res,
         Security $security,
-        PDO $pdo,
         Container $container,
+        Permissions $permissions,
     ) {
+        // Get the session id
         $sid = $req->get_cookie(self::SESSION_NAME);
-        if ($sid === null) {
-            return new JsonResponse(
-                [
-                    "error" => "Session not found",
-                ],
-                401,
-            );
+        if ($sid === null || $sid === "") {
+            return new ProblemeResponse(new Problem("https://example.com/probs/unauthorized", "Session not found", "Invalid or expired token", $req->get_path()), 401);
         }
 
+        // Get the user from the token
         $user = $security->get_user_from_sid($sid);
         if ($user === null) {
-            $res->set_status(401);
-            $res->set_body(
-                json_encode(["error" => "Invalid or expired token"]),
-            );
-            return $res;
+            return new ProblemeResponse(new Problem("https://example.com/probs/unauthorized", "Invalid or expired token", "Invalid or expired token", $req->get_path()), 401);
         }
 
-        // Join on permission,
-        // Interface/AC UserConnected with methods rbac
-        // User in req
+        // Test permissions using RBAC
+        if ($user->is_allowed_array($permissions->permissions) === false) {
+            return new ProblemeResponse(new Problem("https://example.com/probs/unauthorized", "Accès non autorisé", "L'accès à la page est restrain avec les permissions de la session courante.", $req->get_path()), 403);
+        }
 
+        // Add the using in the context of the request
         $container->set(SessionUser::class, $user);
     }
 }

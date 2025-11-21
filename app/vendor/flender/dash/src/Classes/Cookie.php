@@ -15,6 +15,12 @@ class Cookie implements \Stringable{
         return $this;
     }
 
+    public function clear(): self {
+        $this->value = "";
+        return $this;
+    }
+
+
     public function path(string $path): self {
         $this->path = $path;
         return $this;

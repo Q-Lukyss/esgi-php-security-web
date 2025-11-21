@@ -69,7 +69,7 @@ class ControllerLoader
                             $routes[$regex] = [];
                         }
 
-                        $routes[$regex][$route->get_method()->value] = new RouteScheme($route->get_method(), $route->get_middlewares(), $route->get_callback(), $route->get_parameters());
+                        $routes[$regex][$route->get_method()->value] = new RouteScheme($route->get_method(), $route->get_middlewares(), $route->get_callback(), $route->get_parameters(), $route->get_permissions());
                     }
                 }
                 return $routes;
@@ -96,6 +96,7 @@ class ControllerLoader
                     $reflexion->getName(),
                     $method->getName(),
                 ]);
+
                 $routes[] = $routeInstance;
             }
         }

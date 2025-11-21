@@ -40,13 +40,20 @@ class Security  {
 
         // $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return new SessionUser("jean", "admin@test.fr", [
-            "read:cocktail"
+        return new SessionUser(42, "jean", "admin@test.fr", [
+            "read:cocktail", "test"
         ]);
     }
-            public function get_user(string $password, string $hash): ?SessionUser {
-
-        return password_verify($password, $hash);
+    public function get_user(string $user, string $password): ?SessionUser {
+        
+        // get ser from db
+        $user = new SessionUser(43, "jean", "jean@tes.fr", ["review"]);
+        
+        $hash = "test";
+        if (password_verify($password, $hash)) {
+            return $user;
+        }
+        return null;
     }
 
     public function generate_session_id(): string {

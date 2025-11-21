@@ -21,8 +21,6 @@ class RouterTree implements \JsonSerializable
         $this->data = $data;
     }
 
-    // function marge to add local functions
-
     /**
      * Summary of match
      * @param string $path

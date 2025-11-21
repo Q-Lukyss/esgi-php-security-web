@@ -147,7 +147,6 @@ class Router
 
         // Call request, and middlewares
         $res = $this->container->get(Response::class);
-        //echo json_encode($route);
         try {
             // If no route found, return 404
             if ($route === null) {
@@ -158,6 +157,9 @@ class Router
             } else if (array_key_exists($request->get_method(), $route) === false) {
                 $res = $this->container->call($this->default_routes[self::METHOD_NOT_ALLOWED])->merge($res);
             } else {
+
+
+
                 $res = $this->handle_request($route[$request->get_method()], $matched_parameters);
             }
 
@@ -180,6 +182,11 @@ class Router
     {
         $response = $this->container->get(Response::class);
 
+
+        $this->container->add_multiple([
+            Permissions::class => new Permissions($route->permissions)
+        ]);
+
         // Middleware globals + from route
         $middlewares = [
             ...$this->middlewares,
@@ -197,81 +204,7 @@ class Router
         return $this->container->call($route->callback, $match_params, $route->parameters)->merge($response);
     }
 
-    /* private function call(
-        array|Closure $handler,
-        array $parameters = [],
-        array $matched_params = [],
-    ): ?Response {
-        // If is a array (Controller) extract the callback
-        if (
-            is_array($handler) &&
-            is_string($handler[0]) &&
-            class_exists($handler[0])
-        ) {
-            [$class, $method] = $handler;
-            $instance = new $class();
-            $handler = [$instance, $method];
-        } else if ($handler instanceof Closure) {
-            $rc = new \ReflectionFunction($handler);
-            $parameters = array_map(fn($it) => [
-                $it->getName(),
-                $it->getType()->__toString()
-            ], $rc->getParameters());
-        }
-
-        // Add needed params to container
-        $needed_params = $parameters;
-        $params = [];
-        $id = 1;
-        foreach ($needed_params as [$name, $type]) {
-            $this->logger->info("processing $name of type $type");
-            if (in_array($type, ["string", "int", "float"])) {
-                if (settype($matched_params[$id], $type)) {
-                    $params[$name] = $matched_params[$id];
-                    $id++;
-                }
-            } else if (str_starts_with($type, "App\\") && class_exists($type)) {
-                if ($_SERVER["REQUEST_METHOD"] === "GET") {
-                    $query_params = $_GET;
-                } else {
-                    // Else try to get values from body (assuming JSON)
-                    $body = file_get_contents("php://input");
-                    $query_params = json_decode($body, true) ?? [];
-                }
-
-                $entity_instance = new $type(...$query_params);
-
-                if (is_subclass_of($type, IVerifiable::class)) {
-                    // @var IVerifiable $entity_instance
-                    $errors = $entity_instance->verify();
-                }
-                if (count($errors) > 0) {
-                    $handler = fn() => new Response(
-                        "Entity validation failed: " .
-                        implode(", ", $errors),
-                        400,
-                    );
-                    var_dump("test");
-                    $params = [];
-                    break;
-                }
-                $params[$name] = $entity_instance;
-
-            } else {
-                $data = $this->container->get($type);
-                if (is_callable($data)) {
-                    $params[$name] = $data();
-                } else {
-                    $params[$name] = $data;
-                }
-            }
-        }
-
-
-        return $handler(...$params);
-    } */
-
-    public function add_global_middleware(callable $middleware): self
+    public function add_global_middleware($middleware): self
     {
         $this->middlewares = [...$this->middlewares, $middleware];
         return $this;

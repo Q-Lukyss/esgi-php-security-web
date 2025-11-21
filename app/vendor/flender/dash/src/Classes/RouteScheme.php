@@ -7,7 +7,7 @@ use Flender\Dash\Enums\Method;
 
 class RouteScheme
 {
-    public function __construct(public Method $method, public array $middlewares, public array $callback, public array $parameters)
+    public function __construct(public Method $method, public array $middlewares, public array $callback, public array $parameters, public array $permissions)
     {
     }
 
@@ -23,7 +23,7 @@ class RouteScheme
             $out[$regex] = [];
             foreach ($endpoint as $method => $route) {
                 $method = Method::tryFrom($method);
-                $out[$regex][$method->value] = new RouteScheme($method, $route["middlewares"], $route["callback"], $route["parameters"]);
+                $out[$regex][$method->value] = new RouteScheme($method, $route["middlewares"], $route["callback"], $route["parameters"], $route["permissions"]);
             }
         }
         return $out;
@@ -43,7 +43,8 @@ class RouteScheme
                 $out[$regex][$route->method->value] = [
                     "middlewares" => $route->middlewares,
                     "callback" => $route->callback,
-                    "parameters" => $route->parameters
+                    "parameters" => $route->parameters,
+                    "permissions" => $route->permissions
                 ];
             }
 

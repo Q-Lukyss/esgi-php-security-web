@@ -6,7 +6,7 @@ use Flender\Dash\Classes\ConnectedUser;
 
 class SessionUser extends ConnectedUser {
 
-    public function __construct(private string $username, private string $email, array $permissions = []) {
+    public function __construct(public readonly int $id, private string $username, private string $email, array $permissions = []) {
         parent::__construct($permissions);
     }
 
