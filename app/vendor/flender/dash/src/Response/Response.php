@@ -44,6 +44,11 @@ class Response
         $this->add_header($header);
     }
 
+
+    public function remove_cookie(Cookie $cookie): void {
+        $this->add_cookie($cookie->clear());
+    }
+
     public function set_status(int $status): void
     {
         $this->status = $status;
