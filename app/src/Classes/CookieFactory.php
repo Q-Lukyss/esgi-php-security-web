@@ -15,4 +15,9 @@ class CookieFactory {
             ->samesite(Cookie::SAMESITE_STRICT);
     }
 
+        public static function empty(string $name): Cookie {
+            return CookieFactory::create($name, "");
+        }
+
+
 }

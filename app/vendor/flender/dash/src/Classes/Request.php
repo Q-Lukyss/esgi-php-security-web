@@ -5,11 +5,12 @@ namespace Flender\Dash\Classes;
 class Request
 {
 
-    private array $headers;
-    private string $method;
-    private array $cookies;
-    private string $path;
-    private array $data;
+    public readonly array $headers;
+    public readonly string $method;
+    public readonly array $cookies;
+    public readonly string $path;
+    public readonly array $data;
+    public readonly string $ip;
 
     public static function from_global(): Request
     {
@@ -23,6 +24,7 @@ class Request
         $this->method = $data['REQUEST_METHOD'];
         $this->path = parse_url($data['REQUEST_URI'], PHP_URL_PATH);
         $this->cookies = $_COOKIE;
+        $this->ip = $_SERVER["REMOTE_ADDR"];
     }
 
     public function get_data(): array
@@ -34,6 +36,7 @@ class Request
             return json_decode($body, true) ?? [];
         }
     }
+
 
 
     public function get_headers(): array

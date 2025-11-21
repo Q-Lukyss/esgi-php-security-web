@@ -12,7 +12,7 @@ class Route
     private ?string $regex = null;
     private ?array $params = null;
 
-    public function __construct(private Method $method, private string $path, private array $middlewares = [], private ?object $rate_limiter = null)
+    public function __construct(private Method $method, private string $path, private array $middlewares = [], private ?object $rate_limiter = null, private array $permissions = [])
     {
     }
 
@@ -39,24 +39,25 @@ class Route
         $this->params = $params;
     }
 
-    /* public function jsonSerialize() {
-        [$regex, $params] = $this->get_config();
-        return [
-            "method" => $this->method->value,
-            "middlewares" => json_encode($this->middlewares),
-            "path" => $this->path,
-            "parameters" => $params,
-        ];
-    } */
-
     public function get_path(): string
     {
         return $this->path;
     }
 
+    public function get_permissions(): array
+    {
+        return $this->permissions;
+    }
+
     public function get_middlewares(): array
     {
         return array_map(function ($it) {
+
+            // If it's already initialized
+            if (is_string($it) === false) {
+                return [$it, "__invoke"];
+            }
+
             if (!class_exists($it)) {
                 throw new Exception("Class $it does not exist.");
             }
