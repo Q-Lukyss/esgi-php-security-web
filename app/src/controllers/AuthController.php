@@ -7,12 +7,15 @@ use App\Classes\CSRF;
 use App\Classes\Security;
 use App\Classes\SessionUser;
 use App\Interfaces\IVerifiable;
+use App\Middlewares\RateLimiter;
 use Flender\Dash\Attributes\Route;
 use Flender\Dash\Classes\Controller;
+use Flender\Dash\Classes\ILogger;
 use Flender\Dash\Enums\Method;
 use Flender\Dash\Response\HtmlResponse;
 use App\Middlewares\SecurityMiddleware;
 use Flender\Dash\Response\JsonResponse;
+use Flender\Dash\Response\RedirectResponse;
 use Flender\Dash\Response\Response;
 use PDO;
 
@@ -30,15 +33,16 @@ class LoginBody implements IVerifiable {
 
 class AuthController extends Controller {
 
+    public function __construct(private ILogger $logger) {}
 
-    #[Route(Method::GET, "/me", middlewares: [SecurityMiddleware::class]), ]
-    function me(?SessionUser $user) {
+    #[Route(Method::GET, "/me", middlewares: [new RateLimiter(40), SecurityMiddleware::class], permissions: ["test"]) ]
+    public function me(?SessionUser $user) {
         $content = print_r($user, true);
         return new HtmlResponse("<pre>$content</pre>");
     }
 
     #[Route(Method::POST, "/login")]
-    function login(Security $security, PDO $pdo, LoginBody $body, Response $res, CSRF $csrf) {
+    public function login(Security $security, PDO $pdo, LoginBody $body, Response $res, CSRF $csrf) {
         
         $errors = $body->verify();
         if ($errors !== []) {
@@ -57,6 +61,13 @@ class AuthController extends Controller {
         $res->add_cookie(CookieFactory::create(SecurityMiddleware::SESSION_NAME, $sid));
 
         return new HtmlResponse("<pre>$sid</pre>");
+    }
+
+    #[Route(Method::GET, "/logout", middlewares: [SecurityMiddleware::class])]
+    public function logout(Response $res, SessionUser $user) {
+        $this->logger->info("User logout", ["user_id" => $user->id]);
+        $res->remove_cookie(CookieFactory::empty(SecurityMiddleware::SESSION_NAME));
+        return new RedirectResponse("home");
     }
 
 }
