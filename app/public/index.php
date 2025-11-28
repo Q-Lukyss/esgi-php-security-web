@@ -10,14 +10,16 @@ use Flender\Dash\Classes\EnvLoader;
 use Flender\Dash\Classes\Router;
 use Flender\Dash\Response\Response;
 
-$env = EnvLoader::get_env(dirname(__DIR__), ProjectEnv::class);
+// $env = EnvLoader::get_env(dirname(__DIR__), ProjectEnv::class);
 
-$app = (new Router())->set_base_path("/lpm")
+$app = new Router();
+// ->set_base_path("/lpm")
 
-    ->remove_trailing_slash(true)
-    //->set_cache_router("/cache/router.json")
+// ->remove_trailing_slash(true)
+$app
+    // ->set_cache_router("/cache/router.json")
 
-    ->set_logger(new FileLogger("../cache/app.log"))
+    ->set_logger(new FileLogger("./cache/app.log"))
     ->set_debug(true)
 
     ->add_global_middleware([LoggerMiddleware::class, "__invoke"])
@@ -28,20 +30,28 @@ $app = (new Router())->set_base_path("/lpm")
             "X-Frame-Options" => "DENY always",
             "Referrer-Policy" => "strict-origin-when-cross-origin always",
             "Cross-Origin-Resource-Policy" => "same-origin always",
-            "Content-Security-Policy" => "\"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';\" always;",
-            "Permissions-Policy" => "\"geolocation=(), microphone=(), camera=()\" always",
-            "Strict-Transport-Security" => "\"max-age=31536000; includeSubDomains; preload\" always"
+            "Content-Security-Policy" =>
+                "\"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';\" always;",
+            "Permissions-Policy" =>
+                "\"geolocation=(), microphone=(), camera=()\" always",
+            "Strict-Transport-Security" =>
+                "\"max-age=31536000; includeSubDomains; preload\" always",
         ]);
 
         // TODO: Add cache controle pour les pages sensibles
     })
 
-    ->set_container(new Container([
-        PDO::class => fn() => new PDO(
-            "sqlite:" . Router::$APP_BASE . DIRECTORY_SEPARATOR . "database.db",
-        ),
-        // Other services...
-    ]))
+    ->set_container(
+        new Container([
+            PDO::class => fn() => new PDO(
+                "sqlite:" .
+                    Router::$APP_BASE .
+                    DIRECTORY_SEPARATOR .
+                    "database.db",
+            ),
+            // Other services...
+        ]),
+    )
 
     ->set_404_callback(fn() => new Response("Custom Not Found Page", 404))
     ->set_error_callback(
@@ -51,9 +61,7 @@ $app = (new Router())->set_base_path("/lpm")
         ),
     );
 
-
 // ->add_controller(HomeController::class)
-
 
 /* $app->get("/test/test", function(PDO $pdo) {
     return "test";

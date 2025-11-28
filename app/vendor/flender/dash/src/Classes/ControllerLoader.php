@@ -6,12 +6,10 @@ use Flender\Dash\Attributes\Route;
 
 class ControllerLoader
 {
-    public function __construct(private ?ILogger $logger)
-    {
-    }
+    public function __construct(private ?ILogger $logger) {}
 
     /**
-     * 
+     *
      * @param string $file_path
      * @return RouterTree|null
      */
@@ -37,7 +35,7 @@ class ControllerLoader
     }
 
     /**
-     * 
+     *
      * @param string $directory
      * @throws \InvalidArgumentException
      * @return RouterTree
@@ -50,32 +48,41 @@ class ControllerLoader
             );
         }
 
-        $files = glob($directory . "/*.php");
-        return new RouterTree(array_reduce(
-            $files,
-            function ($routes, $file) {
-                $file_name = pathinfo($file, PATHINFO_FILENAME);
-                $class_namespace = "App\\Controllers\\" . $file_name;
+        $files = glob("$directory/*.php");
+        return new RouterTree(
+            array_reduce(
+                $files,
+                function ($routes, $file) {
+                    $file_name = pathinfo($file, PATHINFO_FILENAME);
+                    $class_namespace = "App\\controllers\\$file_name";
 
-                if (class_exists($class_namespace)) {
+                    if (class_exists($class_namespace)) {
+                        $routes_from_controller = $this->get_routes_from_controller(
+                            $class_namespace,
+                        );
 
-                    $routes_from_controller = $this->get_routes_from_controller(
-                        $class_namespace,
-                    );
+                        foreach ($routes_from_controller as $route) {
+                            $regex = $route->get_regex();
+                            if (\array_key_exists($regex, $routes) === false) {
+                                $routes[$regex] = [];
+                            }
 
-                    foreach ($routes_from_controller as $route) {
-                        $regex = $route->get_regex();
-                        if (array_key_exists($regex, $routes) === false) {
-                            $routes[$regex] = [];
+                            $routes[$regex][
+                                $route->get_method()->value
+                            ] = new RouteScheme(
+                                $route->get_method(),
+                                $route->get_middlewares(),
+                                $route->get_callback(),
+                                $route->get_parameters(),
+                                $route->get_permissions(),
+                            );
                         }
-
-                        $routes[$regex][$route->get_method()->value] = new RouteScheme($route->get_method(), $route->get_middlewares(), $route->get_callback(), $route->get_parameters(), $route->get_permissions());
                     }
-                }
-                return $routes;
-            },
-            [],
-        ));
+                    return $routes;
+                },
+                [],
+            ),
+        );
     }
 
     /**

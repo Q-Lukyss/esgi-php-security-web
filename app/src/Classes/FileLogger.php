@@ -6,9 +6,9 @@ use Flender\Dash\Classes\ILogger;
 
 class FileLogger implements ILogger
 {
-
     private $handle;
-    public function __construct(string $file) {
+    public function __construct(string $file)
+    {
         // if file not exists, crate it
         $this->handle = fopen($file, "w");
     }

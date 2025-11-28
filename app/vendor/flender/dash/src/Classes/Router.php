@@ -78,7 +78,7 @@ class Router
             self::METHOD_NOT_ALLOWED => fn() => new JsonResponse(
                 ["error" => "Method not allowed"],
                 405,
-            )
+            ),
         ];
 
         // Set default paths using composer autoload
@@ -101,8 +101,8 @@ class Router
             Response::class => fn() => $response,
             Request::class => fn() => $request,
 
-                // In case...
-            Container::class => fn() => $this->container
+            // In case...
+            Container::class => fn() => $this->container,
         ]);
         $this->container->set_external_data($request->get_data());
 
@@ -111,7 +111,6 @@ class Router
             $this->logger = new EmptyLogger();
         }
         $this->container->set(ILogger::class, $this->logger);
-
 
         // 2. Get routes
         // Extract route from cache, or analyse the Controller/ directory
@@ -124,19 +123,22 @@ class Router
                 $this->cache_router,
             );
         } else {
-            $this->router_tree = $controller_loader->get_router_tree_from_directory(Router::$CONTROLLER_DIRECTORY);
+            $this->router_tree = $controller_loader->get_router_tree_from_directory(
+                Router::$CONTROLLER_DIRECTORY,
+            );
             if ($this->cache_router !== null) {
                 $encoded_routes = json_encode($this->router_tree);
                 file_put_contents($this->cache_router, $encoded_routes);
                 $this->logger->info("Added routes to cache", [
                     "file" => $this->cache_router,
-                    "routes" => $encoded_routes
+                    "routes" => $encoded_routes,
                 ]);
             }
         }
 
         $path = $request->get_path();
-        $have_base_path = $this->base_path !== null &&
+        $have_base_path =
+            $this->base_path !== null &&
             str_starts_with($path, $this->base_path);
         if ($have_base_path) {
             $path = substr($path, strlen($this->base_path));
@@ -151,47 +153,54 @@ class Router
             // If no route found, return 404
             if ($route === null) {
                 $this->logger->info("No route found", [
-                    "path" => $request->get_path()
+                    "path" => $request->get_path(),
                 ]);
-                $res = $this->container->call($this->default_routes[self::NOT_FOUND_ROUTE])->merge($res);
-            } else if (array_key_exists($request->get_method(), $route) === false) {
-                $res = $this->container->call($this->default_routes[self::METHOD_NOT_ALLOWED])->merge($res);
+                $res = $this->container
+                    ->call($this->default_routes[self::NOT_FOUND_ROUTE])
+                    ->merge($res);
+            } elseif (
+                array_key_exists($request->get_method(), $route) === false
+            ) {
+                $res = $this->container
+                    ->call($this->default_routes[self::METHOD_NOT_ALLOWED])
+                    ->merge($res);
             } else {
-
-
-
-                $res = $this->handle_request($route[$request->get_method()], $matched_parameters);
+                $res = $this->handle_request(
+                    $route[$request->get_method()],
+                    $matched_parameters,
+                );
             }
-
         } catch (Exception $ex) {
             $this->container->set(Exception::class, $ex);
-            $res = $this->container->call($this->default_routes[self::ERROR_ROUTE])->merge($res);
+            $res = $this->container
+                ->call($this->default_routes[self::ERROR_ROUTE])
+                ->merge($res);
         } catch (Throwable $th) {
             $this->container->add_multiple([
                 Throwable::class => $th,
-                Exception::class => new Exception($th->getMessage())
+                Exception::class => new Exception($th->getMessage()),
             ]);
-            $res = $this->container->call($this->default_routes[self::ERROR_ROUTE])->merge($res);
+            $res = $this->container
+                ->call($this->default_routes[self::ERROR_ROUTE])
+                ->merge($res);
         }
 
         // Finally, send the response
         $res->send();
     }
 
-    private function handle_request(RouteScheme $route, array $match_params): Response
-    {
+    private function handle_request(
+        RouteScheme $route,
+        array $match_params,
+    ): Response {
         $response = $this->container->get(Response::class);
 
-
         $this->container->add_multiple([
-            Permissions::class => new Permissions($route->permissions)
+            Permissions::class => new Permissions($route->permissions),
         ]);
 
         // Middleware globals + from route
-        $middlewares = [
-            ...$this->middlewares,
-            ...$route->middlewares
-        ];
+        $middlewares = [...$this->middlewares, ...$route->middlewares];
 
         foreach ($middlewares as $middleware) {
             $optionnal_res = $this->container->call($middleware);
@@ -201,7 +210,9 @@ class Router
         }
 
         // Finally, call the handler
-        return $this->container->call($route->callback, $match_params, $route->parameters)->merge($response);
+        return $this->container
+            ->call($route->callback, $match_params, $route->parameters)
+            ->merge($response);
     }
 
     public function add_global_middleware($middleware): self
@@ -218,16 +229,15 @@ class Router
 
     private function init_static_variable()
     {
-        $vender_directory = dirname(
-            (new \ReflectionClass(ClassLoader::class))->getFileName(),
-        );
+        $rc = new \ReflectionClass(ClassLoader::class);
+        $vender_directory = dirname($rc->getFileName());
         self::$APP_BASE = dirname($vender_directory, 2);
 
         $src_directory = self::$APP_BASE . DIRECTORY_SEPARATOR . "src";
         self::$TEMPLATES_DIRECTORY =
             $src_directory . DIRECTORY_SEPARATOR . "templates";
         self::$CONTROLLER_DIRECTORY =
-            $src_directory . DIRECTORY_SEPARATOR . "Controllers";
+            $src_directory . DIRECTORY_SEPARATOR . "controllers";
     }
 
     /**
@@ -298,7 +308,7 @@ class Router
         if (isset($base[$path]["methods"][$route->get_method()->value])) {
             throw new \InvalidArgumentException(
                 "Route $path already exists for method " .
-                $route->get_method()->value,
+                    $route->get_method()->value,
             );
         }
 
