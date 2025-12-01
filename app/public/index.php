@@ -44,8 +44,13 @@ $app
     ->set_container(
         new Container([
             PDO::class => fn() => new PDO(
+                // "sqlite:./database.db",
                 "mysql:dbname=" .
-                    $env->DATABASE_NAME . ";host=" . $env->DATABASE_URL, $env->DATABASE_USER, $env->DATABASE_PASSWORD
+                    $env->DATABASE_NAME .
+                    ";host=" .
+                    $env->DATABASE_URL,
+                $env->DATABASE_USER,
+                $env->DATABASE_PASSWORD,
             ),
 
             // Other services...

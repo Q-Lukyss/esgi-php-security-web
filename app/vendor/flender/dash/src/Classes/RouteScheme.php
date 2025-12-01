@@ -4,12 +4,15 @@ namespace Flender\Dash\Classes;
 
 use Flender\Dash\Enums\Method;
 
-
 class RouteScheme
 {
-    public function __construct(public Method $method, public array $middlewares, public array $callback, public array $parameters, public array $permissions)
-    {
-    }
+    public function __construct(
+        public Method $method,
+        public array $middlewares,
+        public array $callback,
+        public array $parameters,
+        public array $permissions,
+    ) {}
 
     /**
      * Summary of fromArray
@@ -23,10 +26,32 @@ class RouteScheme
             $out[$regex] = [];
             foreach ($endpoint as $method => $route) {
                 $method = Method::tryFrom($method);
-                $out[$regex][$method->value] = new RouteScheme($method, $route["middlewares"], $route["callback"], $route["parameters"], $route["permissions"]);
+                $out[$regex][$method->value] = new RouteScheme(
+                    $method,
+                    $route["middlewares"],
+                    $route["callback"],
+                    $route["parameters"],
+                    $route["permissions"],
+                );
             }
         }
         return $out;
+    }
+
+    public function get_arguments(array $args): array
+    {
+        $params = [];
+        $parameters = $this->parameters;
+        $tmp_i = 0;
+        for ($i = 1; $i < \count($parameters); $i++) {
+            $param = $parameters[$i] ?? null;
+            if ($param !== null && \in_array($param[1], ["int", "string"])) {
+                [$name, $type] = $parameters[$i];
+                $params[$name] = $args[$tmp_i];
+                $tmp_i++;
+            }
+        }
+        return $params;
     }
 
     /**
@@ -44,10 +69,9 @@ class RouteScheme
                     "middlewares" => $route->middlewares,
                     "callback" => $route->callback,
                     "parameters" => $route->parameters,
-                    "permissions" => $route->permissions
+                    "permissions" => $route->permissions,
                 ];
             }
-
         }
         return $out;
     }

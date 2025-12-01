@@ -198,18 +198,6 @@ class Router
             Permissions::class => new Permissions($route->permissions),
         ]);
 
-        $params = [];
-        $parameters = $route->parameters;
-        $tmp_i = 0;
-        for ($i = 1; $i < \count($parameters); $i++) {
-            $param = $parameters[$i] ?? null;
-            if ($param !== null && \in_array($param[1], ["int", "string"])) {
-                [$name, $type] = $parameters[$i];
-                $params[$name] = $match_params[$tmp_i];
-                $tmp_i++;
-            }
-        }
-
         // Middleware globals + from route
         $middlewares = [...$this->middlewares, ...$route->middlewares];
 
@@ -222,7 +210,11 @@ class Router
 
         // Finally, call the handler
         return $this->container
-            ->call($route->callback, $params, $route->parameters)
+            ->call(
+                $route->callback,
+                $route->get_arguments($match_params),
+                $route->parameters,
+            )
             ->merge($response);
     }
 
