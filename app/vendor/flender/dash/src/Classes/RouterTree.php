@@ -31,7 +31,7 @@ class RouterTree implements \JsonSerializable
     {
         foreach ($this->data as $regex => $group) {
             $pattern = "#^{$regex}$#";
-            if (preg_match($pattern, $path, $match_params)) {
+            if (preg_match($pattern, $path, $matched_parameters)) {
                 return $group;
             }
         }

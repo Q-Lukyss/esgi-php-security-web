@@ -194,10 +194,18 @@ class Router
         array $match_params,
     ): Response {
         $response = $this->container->get(Response::class);
-
         $this->container->add_multiple([
             Permissions::class => new Permissions($route->permissions),
         ]);
+
+        $params = [];
+        $parameters = $route->parameters;
+        for ($i = 1; $i < count($match_params); $i++) {
+            if (isset($parameters[$i - 1])) {
+                [$name, $type] = $parameters[$i - 1];
+                $params[$name] = $match_params[$i];
+            }
+        }
 
         // Middleware globals + from route
         $middlewares = [...$this->middlewares, ...$route->middlewares];
@@ -211,7 +219,7 @@ class Router
 
         // Finally, call the handler
         return $this->container
-            ->call($route->callback, $match_params, $route->parameters)
+            ->call($route->callback, $params, $route->parameters)
             ->merge($response);
     }
 

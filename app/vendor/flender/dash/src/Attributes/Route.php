@@ -7,18 +7,21 @@ use Flender\Dash\Enums\Method;
 #[\Attribute(\Attribute::TARGET_METHOD)]
 class Route
 {
-
     private array $callback = [];
     private ?string $regex = null;
     private ?array $params = null;
 
-    public function __construct(private Method $method, private string $path, private array $middlewares = [], private ?object $rate_limiter = null, private array $permissions = [])
-    {
-    }
+    public function __construct(
+        private Method $method,
+        private string $path,
+        private array $middlewares = [],
+        private ?object $rate_limiter = null,
+        private array $permissions = [],
+    ) {}
 
     public function get_regex(): string
     {
-        if ($this->regex === NULL) {
+        if ($this->regex === null) {
             $this->apply_config();
         }
         return $this->regex;
@@ -26,7 +29,7 @@ class Route
 
     public function get_parameters(): array
     {
-        if ($this->params === NULL) {
+        if ($this->params === null) {
             $this->apply_config();
         }
         return $this->params;
@@ -52,7 +55,6 @@ class Route
     public function get_middlewares(): array
     {
         return array_map(function ($it) {
-
             // If it's already initialized
             if (is_string($it) === false) {
                 return [$it, "__invoke"];
@@ -63,11 +65,10 @@ class Route
             }
             $rc = new \ReflectionClass($it);
             // Get method 'handle'
-            if (!$rc->hasMethod('__invoke')) {
+            if (!$rc->hasMethod("__invoke")) {
                 throw new Exception("Class $it do not implement __invoke");
             }
             return [$it, "__invoke"];
-
         }, $this->middlewares);
     }
 
@@ -89,23 +90,30 @@ class Route
         $change_type_to_regex = [];
         foreach ($routeReflexion->getParameters() as $param) {
             $regex = match ($param->getType()?->getName()) {
-                'int' => '(\d+)',
-                'float' => '([\d.]+)',
-                'string' => '([^/]+)',
-                default => '([^/]+)'
+                "int" => "(\d+)",
+                "float" => "([\d.]+)",
+                "string" => "([^/]+)",
+                default => "([^/]+)",
             };
             $change_type_to_regex[$param->getName()] = $regex;
         }
 
-        $regex = preg_replace_callback('/:(\w+)/', function ($matches) use ($change_type_to_regex) {
-            $param_name = $matches[1];
-            return $change_type_to_regex[$param_name];
-        }, $this->path);
+        $regex = preg_replace_callback(
+            "/:(\w+)/",
+            function ($matches) use ($change_type_to_regex) {
+                $param_name = $matches[1];
+                return $change_type_to_regex[$param_name];
+            },
+            $this->path,
+        );
 
-        $parameters = array_map(fn($param) => [
-            $param->getName(),
-            $param->getType()?->getName() ?? 'string'
-        ], $routeReflexion->getParameters());
+        $parameters = array_map(
+            fn($param) => [
+                $param->getName(),
+                $param->getType()?->getName() ?? "string",
+            ],
+            $routeReflexion->getParameters(),
+        );
 
         return [$regex, $parameters];
     }
@@ -118,5 +126,4 @@ class Route
     {
         return $this->callback;
     }
-
 }

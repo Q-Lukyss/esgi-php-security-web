@@ -283,7 +283,6 @@ class Router
         } catch (Throwable $e) {
             // $this->container[Throwable::class] = $e;
             $this->log("error" . print_r($e, true));
-            die();
             $this->call($this->routes[self::ERROR_ROUTE]);
             return null;
         }
@@ -327,6 +326,7 @@ class Router
         // if ($this->base_path && str_starts_with($path, $this->base_path)) {
         //     $path = substr($path, strlen($this->base_path));
         // }
+        //
 
         $route_matcher = new RouteMatcher($this->routes["routes"]);
         $path = $request->get_path();
