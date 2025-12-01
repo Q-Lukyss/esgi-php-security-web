@@ -143,8 +143,8 @@ class Router
         if ($have_base_path) {
             $path = substr($path, strlen($this->base_path));
         }
-        $matched_parameters = [];
 
+        $matched_parameters = [];
         $route = $this->router_tree->match($path, $matched_parameters);
 
         // Call request, and middlewares
