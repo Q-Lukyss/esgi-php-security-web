@@ -35,7 +35,7 @@
 
     <!-- MAIN content -->
     <?php include 'components/druides-table.php'; ?>
-    <?php var_dump($druides) ?>
+    <!-- <?php var_dump($druides) ?> -->
 
     <!-- END -->
     
