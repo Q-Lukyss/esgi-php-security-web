@@ -29,7 +29,7 @@
 <body>
 
     <?php
-    include 'components/topbar.html';
+    include 'components/topbar.php';
     include 'components/navbar.php';
     ?>
 

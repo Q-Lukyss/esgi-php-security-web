@@ -34,9 +34,8 @@
     ?>
 
     <!-- MAIN content -->
-    <?php include 'components/cocktails-table.php'; ?>
-    <!-- <?php var_dump($cocktails) ?> -->
-
+    <?php include 'components/druides-table.php'; ?>
+    <?php var_dump($druides) ?>
 
     <!-- END -->
     
@@ -67,7 +66,7 @@
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
-    <script src="js/cocktail-table.js"></script>
+    <script src="js/druide-table.js"></script>
 </body>
 
 </html>

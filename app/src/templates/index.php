@@ -30,7 +30,7 @@
     
 
     <?php
-    include 'components/topbar.html';
+    include 'components/topbar.php';
     include 'components/navbar.php';
     include 'components/main_image.html';
     include 'components/footer.html';

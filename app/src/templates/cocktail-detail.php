@@ -23,7 +23,7 @@
     <link href="lib/lightbox/css/lightbox.min.css" rel="stylesheet">
 
     <!-- Customized Bootstrap Stylesheet -->
-    <link href="css/style.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
 </head>
 
 <body>
@@ -34,9 +34,14 @@
     ?>
 
     <!-- MAIN content -->
-    <?php include 'components/cocktails-table.php'; ?>
-    <!-- <?php var_dump($cocktails) ?> -->
-
+   
+     <h1>Cocktail detail</h1>
+     <?php 
+        var_dump($cocktail) ;
+        var_dump($ingredients) ;
+        var_dump($upvotes) ;
+     
+     ?>
 
     <!-- END -->
     
@@ -67,7 +72,6 @@
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
-    <script src="js/cocktail-table.js"></script>
 </body>
 
 </html>
