@@ -10,7 +10,7 @@ class FileLogger implements ILogger
     public function __construct(string $file)
     {
         // if file not exists, crate it
-        $this->handle = fopen($file, "w");
+        $this->handle = fopen($file, "a");
     }
 
     private function log(

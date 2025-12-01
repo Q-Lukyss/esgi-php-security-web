@@ -10,7 +10,7 @@ use Flender\Dash\Classes\EnvLoader;
 use Flender\Dash\Classes\Router;
 use Flender\Dash\Response\Response;
 
-// $env = EnvLoader::get_env(dirname(__DIR__), ProjectEnv::class);
+$env = EnvLoader::get_env(dirname(__DIR__), ProjectEnv::class);
 
 $app = new Router();
 // ->set_base_path("/lpm")
@@ -19,7 +19,7 @@ $app = new Router();
 $app
     // ->set_cache_router("/cache/router.json")
 
-    ->set_logger(new FileLogger("./cache/app.log"))
+    // ->set_logger(new FileLogger("./cache/app.log"))
     ->set_debug(true)
 
     ->add_global_middleware([LoggerMiddleware::class, "__invoke"])
@@ -31,7 +31,7 @@ $app
             "Referrer-Policy" => "strict-origin-when-cross-origin always",
             "Cross-Origin-Resource-Policy" => "same-origin always",
             "Content-Security-Policy" =>
-                "\"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';\" always;",
+                "\"default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://stackpath.bootstrapcdn.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none';\" always;",
             "Permissions-Policy" =>
                 "\"geolocation=(), microphone=(), camera=()\" always",
             "Strict-Transport-Security" =>
@@ -44,11 +44,10 @@ $app
     ->set_container(
         new Container([
             PDO::class => fn() => new PDO(
-                "sqlite:" .
-                    Router::$APP_BASE .
-                    DIRECTORY_SEPARATOR .
-                    "database.db",
+                "mysql:dbname=" .
+                    $env->DATABASE_NAME . ";host=" . $env->DATABASE_URL, $env->DATABASE_USER, $env->DATABASE_PASSWORD
             ),
+
             // Other services...
         ]),
     )

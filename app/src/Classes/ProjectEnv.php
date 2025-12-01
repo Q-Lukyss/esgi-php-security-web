@@ -4,6 +4,7 @@ namespace App\Classes;
 
 class ProjectEnv {
     public string $DATABASE_URL;
-    private string $DATABASE_USER;
-    private string $DATABASE_PASSWORD;
+    public string $DATABASE_NAME;
+    public string $DATABASE_USER;
+    public string $DATABASE_PASSWORD;
 }
