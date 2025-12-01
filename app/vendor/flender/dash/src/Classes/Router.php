@@ -200,10 +200,13 @@ class Router
 
         $params = [];
         $parameters = $route->parameters;
-        for ($i = 1; $i < count($match_params); $i++) {
-            if (isset($parameters[$i - 1])) {
-                [$name, $type] = $parameters[$i - 1];
-                $params[$name] = $match_params[$i];
+        $tmp_i = 0;
+        for ($i = 1; $i < \count($parameters); $i++) {
+            $param = $parameters[$i] ?? null;
+            if ($param !== null && \in_array($param[1], ["int", "string"])) {
+                [$name, $type] = $parameters[$i];
+                $params[$name] = $match_params[$tmp_i];
+                $tmp_i++;
             }
         }
 
