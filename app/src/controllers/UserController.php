@@ -1,7 +1,11 @@
 <?php
+namespace App\Controllers;
+
 use Flender\Dash\Classes\Controller;
 use Flender\Dash\Attributes\Route;
 use Flender\Dash\Enums\Method;
+
+use PDO;
 
 class UserController extends Controller {
 
@@ -16,6 +20,23 @@ class UserController extends Controller {
 
     // #[Route(Method::POST, "/profile")]
     // inscription
+
+
+    #[Route(Method::GET, "/druides")]
+    // liste des cocktails
+    public function druides(PDO $pdo) {
+        $sql = 'SELECT id, role, display_name, bio, avatar_url
+                FROM users u
+                ORDER BY created_at DESC';
+        $sth = $pdo->prepare($sql);
+        $sth->execute();
+        $druides = $sth->fetchAll();
+
+        return $this->render("druides", [
+            "title" => "Nos Druides",
+            "druides" => $druides,
+        ]);
+    }
 
 
 

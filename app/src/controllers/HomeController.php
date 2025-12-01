@@ -16,7 +16,7 @@ use PDO;
 
 class HomeController extends Controller {
 
-    #[Route(Method::GET, "/", middlewares: [SecurityMiddleware::class], rate_limiter: new RateLimiter(10, 210))]
+    #[Route(Method::GET, "/", rate_limiter: new RateLimiter(10, 210))]
     public function index() {
         // throw new ErrorException("test");
         return $this->render("index", [
