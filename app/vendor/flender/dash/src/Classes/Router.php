@@ -2,15 +2,13 @@
 
 namespace Flender\Dash\Classes;
 
-use Closure;
 use Composer\Autoload\ClassLoader;
 use Exception;
 use Flender\Dash\Attributes\Route;
 use Flender\Dash\Enums\Method;
-use Flender\Dash\Interfaces\IVerifiable;
 use Flender\Dash\Response\JsonResponse;
 use Flender\Dash\Response\Response;
-use ReflectionFunction;
+use Flender\Dash\Response\TextResponse;
 use Throwable;
 
 class Router
@@ -119,12 +117,16 @@ class Router
         $is_cache_router_exists =
             $this->cache_router !== null && is_file($this->cache_router);
         if ($is_cache_router_exists) {
-            $this->router_tree = $controller_loader->get_router_tree_from_cache(
-                $this->cache_router,
+            $this->router_tree = $this->router_tree->merge(
+                $controller_loader->get_router_tree_from_cache(
+                    $this->cache_router,
+                ),
             );
         } else {
-            $this->router_tree = $controller_loader->get_router_tree_from_directory(
-                Router::$CONTROLLER_DIRECTORY,
+            $this->router_tree = $this->router_tree->merge(
+                $controller_loader->get_router_tree_from_directory(
+                    Router::$CONTROLLER_DIRECTORY,
+                ),
             );
             if ($this->cache_router !== null) {
                 $encoded_routes = json_encode($this->router_tree);
@@ -208,14 +210,16 @@ class Router
             }
         }
 
-        // Finally, call the handler
-        return $this->container
-            ->call(
-                $route->callback,
-                $route->get_arguments($match_params),
-                $route->parameters,
-            )
-            ->merge($response);
+        // Call the handler
+        $response = $this->container->call(
+            $route->callback,
+            $route->get_arguments($match_params),
+            $route->parameters,
+        );
+        if (!($response instanceof Response)) {
+            $response = new TextResponse((string) $response);
+        }
+        return $response->merge($response);
     }
 
     public function add_global_middleware($middleware): self
@@ -292,37 +296,21 @@ class Router
         return $this;
     }
 
-    private function register_route(Route $route)
+    private function register_route(Route $route): self
     {
         if (!$route->get_callback()) {
             throw new \InvalidArgumentException("Route must have a callback.");
         }
-        $path = $route->get_path();
-        $base = &$this->routes["routes"];
-
-        // If route path does not exist, create it
-        if (!is_array($base[$path] ?? null)) {
-            [$regex, $parameters] = $route->get_config();
-            $methods = [];
-            $base[$path] = compact("regex", "parameters", "methods");
-        }
-
-        // If method already exists for this path, throw error
-        if (isset($base[$path]["methods"][$route->get_method()->value])) {
-            throw new \InvalidArgumentException(
-                "Route $path already exists for method " .
-                    $route->get_method()->value,
-            );
-        }
-
-        $base[$path]["methods"][
-            $route->get_method()->value
-        ] = $route->get_callback();
+        $this->router_tree->add($route);
+        return $this;
     }
 
     public function get(string $path, callable|array $callback): self
     {
-        $this->register_route(new Route(Method::GET, $path, $callback));
+        $route = new Route(Method::GET, $path);
+        $route->set_callback($callback);
+        $this->register_route($route);
+
         return $this;
     }
 

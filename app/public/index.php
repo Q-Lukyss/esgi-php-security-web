@@ -67,8 +67,8 @@ $app
 
 // ->add_controller(HomeController::class)
 
-/* $app->get("/test/test", function(PDO $pdo) {
-    return "test";
-}); */
+$app->get("/test/:jean", function (string $jean) {
+    return "test $jean";
+});
 
 $app->run();

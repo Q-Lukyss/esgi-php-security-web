@@ -2,30 +2,26 @@
 
 namespace Flender\Dash\Classes;
 
-use Closure;
 use Composer\Autoload\ClassLoader;
 use Exception;
 use Flender\Dash\Attributes\Route;
 use Flender\Dash\Enums\Method;
-use Flender\Dash\Interfaces\ISecurity;
-use Flender\Dash\Interfaces\IVerifiable;
 use Flender\Dash\Response\JsonResponse;
 use Flender\Dash\Response\Response;
+use Flender\Dash\Response\TextResponse;
 use Throwable;
 
 class Router
 {
     /**
-     * All routes of the application
+     * All default routes of the application
      * @var array
      */
-    private array $routes;
+    private array $default_routes;
 
-    /**
-     * Storage K/V (fn) used to implement dependency injection (DI)
-     * @var array
-     */
-    private array $container = [];
+    private RouterTree $router_tree;
+
+    private Container $container;
 
     /**
      * The base path of the application
@@ -55,75 +51,200 @@ class Router
      */
     private bool $debug = false;
 
+    private ILogger $logger;
+    private array $middlewares = [];
+
     public static string $APP_BASE = "";
     public static string $TEMPLATES_DIRECTORY = "";
     public static string $CONTROLLER_DIRECTORY = "";
 
     private const ERROR_ROUTE = "error";
     private const NOT_FOUND_ROUTE = "404";
+    private const METHOD_NOT_ALLOWED = "method_not_allowed";
 
     public function __construct()
     {
         // Set default routes
-        $this->routes = [
+        header_remove();
+        $this->default_routes = [
             "routes" => [],
             self::ERROR_ROUTE => fn() => new Response(
-                "Enternal Server Error",
+                "Eternal Server Error",
                 500,
             ),
             self::NOT_FOUND_ROUTE => fn() => new Response("Not Found", 404),
+            self::METHOD_NOT_ALLOWED => fn() => new JsonResponse(
+                ["error" => "Method not allowed"],
+                405,
+            ),
         ];
 
         // Set default paths using composer autoload
-        $this->set_static_variable();
+        $this->logger = new EmptyLogger();
+        $this->init_static_variable();
+        $this->container = new Container([]);
+        $this->router_tree = new RouterTree();
     }
 
-    private function get_routes_from_cache(): array
+    /**
+     * Analyser the incomming request, recover Controllers, performe middlewares and output the request
+     */
+    public function run(): void
     {
-        if (!is_file($this->cache_router)) {
-            throw new \InvalidArgumentException("Cache router does not exist.");
+        // 1. Get all data from context
+        // Add Request & Response to container
+        $request = Request::from_global();
+        $response = new Response();
+        $this->container->add_multiple([
+            Response::class => fn() => $response,
+            Request::class => fn() => $request,
+
+            // In case...
+            Container::class => fn() => $this->container,
+        ]);
+        $this->container->set_external_data($request->get_data());
+
+        // Reset logger is not in debug mode
+        if ($this->debug === false) {
+            $this->logger = new EmptyLogger();
         }
-        $content = file_get_contents($this->cache_router);
-        $json = json_decode($content, true);
-        if (json_last_error()) {
-            throw new \InvalidArgumentException(
-                "Cache router is not a valid JSON.",
+        $this->container->set(ILogger::class, $this->logger);
+
+        // 2. Get routes
+        // Extract route from cache, or analyse the Controller/ directory
+        // eventually, save to cache
+        $controller_loader = new ControllerLoader($this->logger);
+        $is_cache_router_exists =
+            $this->cache_router !== null && is_file($this->cache_router);
+        if ($is_cache_router_exists) {
+            $this->router_tree = $this->router_tree->merge(
+                $controller_loader->get_router_tree_from_cache(
+                    $this->cache_router,
+                ),
             );
+        } else {
+            $this->router_tree = $this->router_tree->merge(
+                $controller_loader->get_router_tree_from_directory(
+                    Router::$CONTROLLER_DIRECTORY,
+                ),
+            );
+            if ($this->cache_router !== null) {
+                $encoded_routes = json_encode($this->router_tree);
+                file_put_contents($this->cache_router, $encoded_routes);
+                $this->logger->info("Added routes to cache", [
+                    "file" => $this->cache_router,
+                    "routes" => $encoded_routes,
+                ]);
+            }
         }
-        return $json;
+
+        $path = $request->get_path();
+        $have_base_path =
+            $this->base_path !== null &&
+            str_starts_with($path, $this->base_path);
+        if ($have_base_path) {
+            $path = substr($path, strlen($this->base_path));
+        }
+
+        $matched_parameters = [];
+        $route = $this->router_tree->match($path, $matched_parameters);
+
+        // Call request, and middlewares
+        $res = $this->container->get(Response::class);
+        try {
+            // If no route found, return 404
+            if ($route === null) {
+                $this->logger->info("No route found", [
+                    "path" => $request->get_path(),
+                ]);
+                $res = $this->container
+                    ->call($this->default_routes[self::NOT_FOUND_ROUTE])
+                    ->merge($res);
+            } elseif (
+                array_key_exists($request->get_method(), $route) === false
+            ) {
+                $res = $this->container
+                    ->call($this->default_routes[self::METHOD_NOT_ALLOWED])
+                    ->merge($res);
+            } else {
+                $res = $this->handle_request(
+                    $route[$request->get_method()],
+                    $matched_parameters,
+                );
+            }
+        } catch (Exception $ex) {
+            $this->container->set(Exception::class, $ex);
+            $res = $this->container
+                ->call($this->default_routes[self::ERROR_ROUTE])
+                ->merge($res);
+        } catch (Throwable $th) {
+            $this->container->add_multiple([
+                Throwable::class => $th,
+                Exception::class => new Exception($th->getMessage()),
+            ]);
+            $res = $this->container
+                ->call($this->default_routes[self::ERROR_ROUTE])
+                ->merge($res);
+        }
+
+        // Finally, send the response
+        $res->send();
     }
 
-    private function set_static_variable()
-    {
-        $vender_directory = dirname(
-            new \ReflectionClass(ClassLoader::class)->getFileName(),
+    private function handle_request(
+        RouteScheme $route,
+        array $match_params,
+    ): Response {
+        $response = $this->container->get(Response::class);
+        $this->container->add_multiple([
+            Permissions::class => new Permissions($route->permissions),
+        ]);
+
+        // Middleware globals + from route
+        $middlewares = [...$this->middlewares, ...$route->middlewares];
+
+        foreach ($middlewares as $middleware) {
+            $optionnal_res = $this->container->call($middleware);
+            if ($optionnal_res !== null) {
+                return $optionnal_res->merge($response);
+            }
+        }
+
+        // Call the handler
+        $response = $this->container->call(
+            $route->callback,
+            $route->get_arguments($match_params),
+            $route->parameters,
         );
+        if (!($response instanceof Response)) {
+            $response = new TextResponse((string) $response);
+        }
+        return $response->merge($response);
+    }
+
+    public function add_global_middleware($middleware): self
+    {
+        $this->middlewares = [...$this->middlewares, $middleware];
+        return $this;
+    }
+
+    public function set_logger(ILogger $logger): self
+    {
+        $this->logger = $logger;
+        return $this;
+    }
+
+    private function init_static_variable()
+    {
+        $rc = new \ReflectionClass(ClassLoader::class);
+        $vender_directory = dirname($rc->getFileName());
         self::$APP_BASE = dirname($vender_directory, 2);
 
         $src_directory = self::$APP_BASE . DIRECTORY_SEPARATOR . "src";
         self::$TEMPLATES_DIRECTORY =
             $src_directory . DIRECTORY_SEPARATOR . "templates";
         self::$CONTROLLER_DIRECTORY =
-            $src_directory . DIRECTORY_SEPARATOR . "Controllers";
-    }
-
-    private function get_routes_from_controller(string $controller): array
-    {
-        $reflexion = new \ReflectionClass($controller);
-        $routes = [];
-        foreach ($reflexion->getMethods() as $method) {
-            $attributes = $method->getAttributes(Route::class);
-            foreach ($attributes as $attribute) {
-                /** @var Route $routeInstance */
-                $routeInstance = $attribute->newInstance();
-                $routeInstance->set_callback([
-                    $reflexion->getName(),
-                    $method->getName(),
-                ]);
-                $routes[] = $routeInstance;
-            }
-        }
-        return $routes;
+            $src_directory . DIRECTORY_SEPARATOR . "controllers";
     }
 
     /**
@@ -141,50 +262,6 @@ class Router
         return $this;
     }
 
-    private function get_routes_from_controller_directory(): array
-    {
-        $directory = self::$CONTROLLER_DIRECTORY;
-
-        if (!is_dir($directory)) {
-            throw new \InvalidArgumentException(
-                message: "Directory $directory does not exist.",
-            );
-        }
-
-        $files = glob($directory . "/*.php");
-        return array_reduce(
-            $files,
-            function ($routes, $file) {
-                $file_name = pathinfo($file, PATHINFO_FILENAME);
-                $class_namespace = "App\\Controllers\\" . $file_name;
-                if (class_exists($class_namespace)) {
-                    $routes_from_controller = $this->get_routes_from_controller(
-                        $class_namespace,
-                    );
-
-                    foreach ($routes_from_controller as $route) {
-                        [$regex, $parameters] = $route->get_config();
-                        $path = $route->get_path();
-                        if (!key_exists($path, $routes)) {
-                            $routes[$path] = [
-                                "regex" => $regex,
-                                "methods" => [],
-                            ];
-                        }
-                        $routes[$path]["methods"][
-                            $route->get_method()->value
-                        ] = [
-                            "callback" => $route->get_callback(),
-                            "parameters" => $parameters,
-                            "middlewares" => $route->get_middlewares(),
-                        ];
-                    }
-                }
-                return $routes;
-            },
-            [],
-        );
-    }
     public function set_controllers_directory(string $directory): self
     {
         self::$CONTROLLER_DIRECTORY =
@@ -201,15 +278,6 @@ class Router
         return $this;
     }
 
-    private function log(string $message): void
-    {
-        if ($this->debug) {
-            echo "<pre style='background:#333;color:#0f0;padding:10px;'>" .
-                htmlspecialchars($message) .
-                "</pre>";
-        }
-    }
-
     private function enable_debug_reporting(): void
     {
         ini_set("display_errors", "1");
@@ -217,220 +285,44 @@ class Router
         error_reporting(E_ALL);
     }
 
-    private function call(
-        array|Closure $handler,
-        array $parameters = [],
-        array $matched_params = [],
-    ): ?Response {
-        // If is a array (Controller) extract the callback
-        if (
-            is_array($handler) &&
-            is_string($handler[0]) &&
-            class_exists($handler[0])
-        ) {
-            [$class, $method] = $handler;
-            $instance = new $class();
-            $handler = [$instance, $method];
-        }
-
-        // Add needed params to container
-        $needed_params = $parameters;
-        $params = [];
-        $id = 1;
-        foreach ($needed_params as [$name, $type]) {
-            $this->log("processing $name of type $type");
-            if (in_array($type, ["string", "int", "float"])) {
-                if (settype($matched_params[$id], $type)) {
-                    $params[$name] = $matched_params[$id];
-                    $id++;
-                }
-            } elseif (str_starts_with($type, "App\\Entity\\")) {
-                if (
-                    str_starts_with($type, "App\\Entity\\") &&
-                    class_exists($type) &&
-                    is_subclass_of($type, Entity::class)
-                ) {
-                    // If Get request, try to get values from query parameters
-                    if ($_SERVER["REQUEST_METHOD"] === "GET") {
-                        $query_params = $_GET;
-                    } else {
-                        // Else try to get values from body (assuming JSON)
-                        $body = file_get_contents("php://input");
-                        $query_params = json_decode($body, true) ?? [];
-                    }
-                    $entity_instance = new $type(...$query_params);
-                    if (is_subclass_of($type, IVerifiable::class)) {
-                        /** @var IVerifiable $entity_instance */
-                        $errors = $entity_instance->verify();
-                    }
-                    if (count($errors) > 0) {
-                        $handler = fn() => new Response(
-                            "Entity validation failed: " .
-                                implode(", ", $errors),
-                            400,
-                        );
-                        continue;
-                    }
-                    $params[$name] = $entity_instance;
-                }
-            } else {
-                $params[$name] = $this->container[$type]();
-            }
-        }
-
-        try {
-            $response = $handler(...$params);
-        } catch (Throwable $e) {
-            // $this->container[Throwable::class] = $e;
-            $this->log("error" . print_r($e, true));
-            $this->call($this->routes[self::ERROR_ROUTE]);
-            return null;
-        }
-
-        return $response;
-    }
-
-    public function run(): void
-    {
-        // Extract route from cache, or analyse the Controller/ directory
-        // eventualy, save to cache
-        if ($this->cache_router !== null && is_file($this->cache_router)) {
-            $this->log("Loading routes from cache");
-            $this->routes["routes"] = $this->get_routes_from_cache();
-        } else {
-            $this->log("Loading routes from controller directory");
-            $routes_from_controller = $this->get_routes_from_controller_directory();
-            $this->routes["routes"] = $routes_from_controller;
-            if ($this->cache_router !== null) {
-                $this->log("Saving routes to cache");
-                $encoded_routes = json_encode($routes_from_controller);
-                file_put_contents($this->cache_router, $encoded_routes);
-                // { "regex" => "/:path", methods: { "get" => { "callback": [ "text:text" ], "parameters: []" } } }
-            }
-        }
-
-        // Add Request & Response to container
-        $request = Request::from_global();
-        $response = new Response();
-        $this->container = [
-            ...$this->container,
-            Response::class => fn() => $response,
-            Request::class => fn() => $request,
-        ];
-
-        // Add to Container
-
-        // $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        // $method = $_SERVER['REQUEST_METHOD'];
-
-        // if ($this->base_path && str_starts_with($path, $this->base_path)) {
-        //     $path = substr($path, strlen($this->base_path));
-        // }
-        //
-
-        $route_matcher = new RouteMatcher($this->routes["routes"]);
-        $path = $request->get_path();
-        if (
-            $this->base_path !== null &&
-            str_starts_with($path, $this->base_path)
-        ) {
-            $path = substr($path, strlen($this->base_path));
-        }
-
-        [$route, $match_params] = $route_matcher->match($path);
-
-        // If no route found, return 404
-        if ($route === null) {
-            $this->call($this->routes[self::NOT_FOUND_ROUTE]);
-            return;
-        }
-
-        // If the method doesn't exist, return 405
-        $r = $route["methods"][$request->get_method()] ?? null;
-
-        if (!$r) {
-            $this->call(
-                fn() => new JsonResponse(
-                    ["error" => "method not allowed"],
-                    405,
-                ),
-            );
-            return;
-        }
-
-        // Finally, call the handler
-        foreach ($r["middlewares"] as $middleware) {
-            $optionnal_res = $this->call(
-                $middleware["callback"],
-                $middleware["parameters"],
-            );
-            if ($optionnal_res !== null) {
-                $optionnal_res->send();
-                return;
-            }
-            $res = $res->merge($optionnal_res);
-        }
-
-        $res = $this->call($r["callback"], $r["parameters"], $match_params);
-        $res->send();
-        return;
-    }
-
-    public function set_container(array $container): self
+    public function set_container(Container $container): self
     {
         $this->container = $container;
         return $this;
     }
-
     public function set_base_path(string $base_path): self
     {
         $this->base_path = $base_path;
         return $this;
     }
 
-    private function register_route(Route $route)
+    private function register_route(Route $route): self
     {
         if (!$route->get_callback()) {
             throw new \InvalidArgumentException("Route must have a callback.");
         }
-        $path = $route->get_path();
-        $base = &$this->routes["routes"];
-
-        // If route path does not exist, create it
-        if (!is_array($base[$path] ?? null)) {
-            [$regex, $parameters] = $route->get_config();
-            $methods = [];
-            $base[$path] = compact("regex", "parameters", "methods");
-        }
-
-        // If method already exists for this path, throw error
-        if (isset($base[$path]["methods"][$route->get_method()->value])) {
-            throw new \InvalidArgumentException(
-                "Route $path already exists for method " .
-                    $route->get_method()->value,
-            );
-        }
-
-        $base[$path]["methods"][
-            $route->get_method()->value
-        ] = $route->get_callback();
+        $this->router_tree->add($route);
+        return $this;
     }
 
     public function get(string $path, callable|array $callback): self
     {
-        $this->register_route(new Route(Method::GET, $path, $callback));
+        $route = new Route(Method::GET, $path);
+        $route->set_callback($callback);
+        $this->register_route($route);
+
         return $this;
     }
 
     public function set_404_callback(callable|array $callback): self
     {
-        $this->routes[self::NOT_FOUND_ROUTE] = $callback;
+        $this->default_routes[self::NOT_FOUND_ROUTE] = $callback;
         return $this;
     }
 
     public function set_error_callback(callable|array $callback): self
     {
-        $this->routes[self::ERROR_ROUTE] = $callback;
+        $this->default_routes[self::ERROR_ROUTE] = $callback;
         return $this;
     }
 

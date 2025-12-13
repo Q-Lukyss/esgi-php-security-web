@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Entity\User;
 use App\Middlewares\RateLimiter;
-use App\Middlewares\SecurityMiddleware;
 use Flender\Dash\Classes\Controller;
 use Flender\Dash\Attributes\Route;
 use Flender\Dash\Classes\Request;
@@ -14,10 +13,11 @@ use Flender\Dash\Response\JsonResponse;
 use Flender\Dash\Response\Response;
 use PDO;
 
-class HomeController extends Controller {
-
+class HomeController extends Controller
+{
     #[Route(Method::GET, "/", rate_limiter: new RateLimiter(10, 210))]
-    public function index() {
+    public function index()
+    {
         // throw new ErrorException("test");
         return $this->render("index", [
             "title" => "Accueil",
@@ -25,47 +25,58 @@ class HomeController extends Controller {
     }
 
     #[Route(Method::GET, "/test/:id/id/:user")]
-    public function test(PDO $pdo, int $id, string $user, Request $req, Response $res, ISecurity $sec) {
+    public function test(
+        PDO $pdo,
+        int $id,
+        string $user,
+        Request $req,
+        Response $res,
+        ISecurity $sec,
+    ) {
         $query = <<<SQL
             SELECT * from my_table
         SQL;
-        $query = "SELECT * from my_table"; 
+        $query = "SELECT * from my_table";
         $res->add_headers(
             "x-test: test",
-            "x-test2: " . $sec->verify_session("token")
+            "x-test2: " . $sec->verify_session("token"),
         );
         return new JsonResponse(["user" => $user, "id" => $id]);
     }
 
     #[Route(Method::GET, "/test")]
-    public function test_2(User $user, PDO $pdo) {
+    public function test_2(User $user, PDO $pdo)
+    {
         return new JsonResponse($user);
     }
 
-
     #[Route(Method::GET, "/contact")]
-    public function contact() {
+    public function contact()
+    {
         return $this->render("contact", [
             "title" => "Contact",
         ]);
     }
 
     #[Route(Method::GET, "/gallery")]
-    public function gallery() {
+    public function gallery()
+    {
         return $this->render("gallery", [
             "title" => "Gallerie",
         ]);
     }
 
     #[Route(Method::GET, "/product")]
-    public function product() {
+    public function product()
+    {
         return $this->render("product", [
             "title" => "Produits",
         ]);
     }
 
     #[Route(Method::GET, "/service")]
-    public function service() {
+    public function service()
+    {
         return $this->render("service", [
             "title" => "Nos Services",
         ]);
@@ -80,7 +91,6 @@ class HomeController extends Controller {
     // public function greet(string $name) {
     //     return "Hello $name";
     // }
-    
 
     // #[Route(Method::GET, "/home")]
     // public function home() {
@@ -94,5 +104,4 @@ class HomeController extends Controller {
     // public function redirect() {
     //     return new RedirectResponse(BASE_URL."/home");
     // }
-
 }

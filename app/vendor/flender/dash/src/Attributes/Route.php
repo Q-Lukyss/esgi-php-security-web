@@ -7,7 +7,7 @@ use Flender\Dash\Enums\Method;
 #[\Attribute(\Attribute::TARGET_METHOD)]
 class Route
 {
-    private array $callback = [];
+    private $callback = [];
     private ?string $regex = null;
     private ?array $params = null;
 
@@ -72,7 +72,7 @@ class Route
         }, $this->middlewares);
     }
 
-    public function set_callback(array $callback): self
+    public function set_callback($callback): self
     {
         // Add some tests
         $this->callback = $callback;
