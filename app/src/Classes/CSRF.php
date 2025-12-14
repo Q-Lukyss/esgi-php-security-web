@@ -3,65 +3,58 @@
 namespace App\Classes;
 
 use Flender\Dash\Classes\ILogger;
-use Flender\Dash\Classes\SecuredPdo;
 
 class CSRF
 {
     private const int TOKEN_LIFETIME = 1800;
+    private const string KEY = "csrf_token";
+    private const string KEY_TIME = "csrf_time";
 
-    public function __construct(
-        private SecuredPdo $pdo,
-        private Security $security,
-        private ILogger $logger,
-    ) {}
+    public function __construct(private ILogger $logger) {}
 
-    public function generate_token(string $user_id)
+    private function ensure_session(): void
     {
-        $token = $this->security->generate_session_id();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+    }
 
-        $sql = <<<SQL
-            UPDATE csrf_token FOR
-        SQL;
+    public function issue_token(): string
+    {
+        $this->ensure_session();
 
-        $this->pdo->execute($sql, [
-            ":user_id" => $user_id,
-            ":token" => $token,
-            ":now" => time(),
-        ]);
+        $token = bin2hex(random_bytes(32));
+        $_SESSION[self::KEY] = $token;
+        $_SESSION[self::KEY_TIME] = time();
 
         return $token;
     }
 
-    public function verify_token(SessionUser $user, string $token)
+    public function verify_token(SessionUser $user, string $token): bool
     {
-        $sql = <<<SQL
-            SELECT csrf_token FROM users WHERE id = :id
-        SQL;
+        $this->ensure_session();
 
-        $user = $this->pdo->query_one($sql, ["id" => $user->id]);
-        if ($user === null) {
+        $stored = $_SESSION[self::KEY] ?? null;
+        $ts = $_SESSION[self::KEY_TIME] ?? null;
+
+        if (!is_string($stored) || !is_int($ts)) {
+            $this->logger->warning("CSRF missing", ["user_id" => $user->id]);
             return false;
         }
 
-        $user_token = $user["csrf_token"];
-
-        if ($token !== $user_token) {
+        if (time() - $ts > self::TOKEN_LIFETIME) {
+            unset($_SESSION[self::KEY], $_SESSION[self::KEY_TIME]);
+            $this->logger->warning("CSRF expired", ["user_id" => $user->id]);
             return false;
         }
 
-        // Delete token from db, cause it's used
-        $sql = <<<SQL
-            UPDATE users SET csrf_token = :token WHERE id = :id
-        SQL;
-        if (
-            $this->pdo->execute($sql, ["id" => $user_id, "token" => null]) === 0
-        ) {
-            $this->logger->warning("No row affected by CSRF deletion", [
-                "user_id" => $user_id,
-            ]);
+        if (!hash_equals($stored, $token)) {
+            $this->logger->warning("CSRF mismatch", ["user_id" => $user->id]);
             return false;
         }
 
+        // one-shot
+        unset($_SESSION[self::KEY], $_SESSION[self::KEY_TIME]);
         return true;
     }
 }

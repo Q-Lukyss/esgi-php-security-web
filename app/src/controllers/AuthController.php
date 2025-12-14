@@ -17,6 +17,7 @@ use App\Middlewares\SecurityMiddleware;
 use Flender\Dash\Response\JsonResponse;
 use Flender\Dash\Response\RedirectResponse;
 use Flender\Dash\Response\Response;
+use Flender\Dash\Classes\Request;
 use PDO;
 
 class LoginBody implements IVerifiable
@@ -58,6 +59,32 @@ class AuthController extends Controller
         return new HtmlResponse("<pre>$content</pre>");
     }
 
+    #[Route(Method::GET, "/connexion")]
+    public function connexion(CSRF $csrf, Request $req, Security $security)
+    {
+        // Si déjà connecté (cookie sid valide) -> redirect
+        $sid = $req->get_cookie(SecurityMiddleware::SESSION_NAME);
+        if ($sid !== null && $sid !== "") {
+            $u = $security->get_user_from_sid($sid);
+            if ($u !== null) {
+                return new RedirectResponse("/cocktails");
+            }
+        }
+
+        $token = $csrf->issue_token();
+
+        $redirect = isset($_GET["redirect"])
+            ? (string) $_GET["redirect"]
+            : "/cocktails";
+
+        return $this->render("connexion", [
+            "title" => "Connexion",
+            "csrf_token" => $token,
+            "redirect" => $redirect,
+            "user" => null,
+        ]);
+    }
+
     #[Route(Method::POST, "/login")]
     public function login(
         Security $security,
@@ -89,16 +116,42 @@ class AuthController extends Controller
             CookieFactory::create(SecurityMiddleware::SESSION_NAME, $sid),
         );
 
-        return new HtmlResponse("<pre>$sid</pre>");
+        $contentType = $_SERVER["CONTENT_TYPE"] ?? "";
+        $isForm =
+            str_contains($contentType, "application/x-www-form-urlencoded") ||
+            str_contains($contentType, "multipart/form-data");
+
+        if ($isForm) {
+            $redirect = isset($_POST["redirect"])
+                ? (string) $_POST["redirect"]
+                : "/cocktails";
+
+            // évite les redirects externes
+            if ($redirect === "" || !str_starts_with($redirect, "/")) {
+                $redirect = "/cocktails";
+            }
+
+            return new RedirectResponse($redirect);
+        }
+        return new JsonResponse(["ok" => true], 200);
     }
 
     #[Route(Method::GET, "/logout", middlewares: [SecurityMiddleware::class])]
-    public function logout(Response $res, SessionUser $user)
+    public function logout(Response $res, SessionUser $user, Security $security)
     {
         $this->logger->info("User logout", ["user_id" => $user->id]);
+
+        // Supprime la session côté DB si on a le cookie sid
+        $sid = $_COOKIE[SecurityMiddleware::SESSION_NAME] ?? "";
+        if (is_string($sid) && $sid !== "") {
+            $security->delete_session($sid);
+        }
+
+        // Supprime le cookie côté client
         $res->remove_cookie(
             CookieFactory::empty(SecurityMiddleware::SESSION_NAME),
         );
+
         return new RedirectResponse("home");
     }
 }

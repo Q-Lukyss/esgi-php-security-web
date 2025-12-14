@@ -1,5 +1,32 @@
 <?php declare(strict_types=1);
 
+// ✅ Forcer une session cookie fonctionnelle en local (HTTP)
+$secure = !empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off";
+
+// évite les configs php.ini qui cassent en local
+ini_set("session.use_cookies", "1");
+ini_set("session.use_only_cookies", "1");
+ini_set("session.cookie_httponly", "1");
+ini_set("session.cookie_secure", $secure ? "1" : "0");
+// Lax = safe pour formulaire/fetch same-origin
+ini_set("session.cookie_samesite", "Lax");
+
+// ✅ nom de cookie custom pour être sûr de le voir (et éviter collisions)
+session_name("LPMSESSID");
+
+session_set_cookie_params([
+    "lifetime" => 0,
+    "path" => "/",
+    "domain" => "",
+    "secure" => $secure,
+    "httponly" => true,
+    "samesite" => "Lax",
+]);
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
 require_once __DIR__ . "/../vendor/autoload.php";
 
 use App\Classes\FileLogger;
