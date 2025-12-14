@@ -24,6 +24,7 @@ class LoginBody implements IVerifiable
     public function __construct(
         public readonly string $username = "",
         public readonly string $password = "",
+        public readonly string $csrf = "",
     ) {}
 
     public function verify(): array
@@ -77,10 +78,12 @@ class AuthController extends Controller
             return new JsonResponse(["error" => "Invalid credentials"], 401);
         }
 
+        if ($csrf->verify_token($user, $body->csrf) === false) {
+            return new JsonResponse(["error" => "Invalid CSRF token"], 401);
+        }
+
         // Return cookie
-        $sid = $security->generate_session_id_for_user($user->id);
-        $security->create_session($sid, $user->id);
-        $csrf->generate();
+        $sid = $security->generate_session_id_for_user($user);
 
         $res->add_cookie(
             CookieFactory::create(SecurityMiddleware::SESSION_NAME, $sid),

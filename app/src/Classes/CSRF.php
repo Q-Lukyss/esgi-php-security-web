@@ -32,13 +32,13 @@ class CSRF
         return $token;
     }
 
-    public function verify_token(string $user_id, string $token)
+    public function verify_token(SessionUser $user, string $token)
     {
         $sql = <<<SQL
             SELECT csrf_token FROM users WHERE id = :id
         SQL;
 
-        $user = $this->pdo->query_one($sql, ["id" => $user_id]);
+        $user = $this->pdo->query_one($sql, ["id" => $user->id]);
         if ($user === null) {
             return false;
         }
