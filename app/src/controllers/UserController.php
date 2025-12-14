@@ -50,7 +50,7 @@ class UserController extends Controller
         $sth->execute([$id]);
         $druide = $sth->fetch(PDO::FETCH_ASSOC);
 
-        return $this->render("druides", [
+        return $this->render("druide-detail", [
             "title" => "Profil " . $druide["display_name"],
             "druide" => $druide,
         ]);
