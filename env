@@ -1,0 +1,4 @@
+# renommer en .env
+DB_DATABASE=potion_magique
+DB_PASSWORD=tristanquentin
+DB_USERNAME=esgi
