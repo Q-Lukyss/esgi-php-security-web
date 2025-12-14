@@ -102,6 +102,7 @@ class Router
             // In case...
             Container::class => fn() => $this->container,
         ]);
+        var_dump($request->get_data(), "test");
         $this->container->set_external_data($request->get_data());
 
         // Reset logger is not in debug mode

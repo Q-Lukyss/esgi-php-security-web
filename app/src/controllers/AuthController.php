@@ -24,7 +24,6 @@ class LoginBody implements IVerifiable
     public function __construct(
         public readonly string $username = "",
         public readonly string $password = "",
-        public readonly string $csrf = "",
     ) {}
 
     public function verify(): array
@@ -58,14 +57,22 @@ class AuthController extends Controller
         return new HtmlResponse("<pre>$content</pre>");
     }
 
+    #[Route(Method::GET, "/login")]
+    public function login_view()
+    {
+        return new HtmlResponse(
+            "<form method='post' enctype='application/x-www-form-urlencoded'><input name='username' type='text' placeholder='username'><input name='password' type='password' placeholder='password'><button type='submit'>Login</button></form>",
+        );
+    }
+
     #[Route(Method::POST, "/login")]
     public function login(
         Security $security,
         PDO $pdo,
         LoginBody $body,
         Response $res,
-        CSRF $csrf,
     ) {
+        var_dump($body);
         $errors = $body->verify();
         if ($errors !== []) {
             return new JsonResponse($errors, 400);
@@ -76,10 +83,6 @@ class AuthController extends Controller
         $user = $security->get_user($body->username, $body->password);
         if ($user === null) {
             return new JsonResponse(["error" => "Invalid credentials"], 401);
-        }
-
-        if ($csrf->verify_token($user, $body->csrf) === false) {
-            return new JsonResponse(["error" => "Invalid CSRF token"], 401);
         }
 
         // Return cookie

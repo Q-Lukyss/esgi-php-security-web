@@ -4,7 +4,6 @@ namespace Flender\Dash\Classes;
 
 class Request
 {
-
     public readonly array $headers;
     public readonly string $method;
     public readonly array $cookies;
@@ -21,8 +20,8 @@ class Request
     {
         // $this->headers = $data['HTTP_HEADERS'];
         $this->headers = getallheaders();
-        $this->method = $data['REQUEST_METHOD'];
-        $this->path = parse_url($data['REQUEST_URI'], PHP_URL_PATH);
+        $this->method = $data["REQUEST_METHOD"];
+        $this->path = parse_url($data["REQUEST_URI"], PHP_URL_PATH);
         $this->cookies = $_COOKIE;
         $this->ip = $_SERVER["REMOTE_ADDR"];
     }
@@ -36,8 +35,6 @@ class Request
             return json_decode($body, true) ?? [];
         }
     }
-
-
 
     public function get_headers(): array
     {
@@ -61,12 +58,11 @@ class Request
 
     public function get_cookie(string $name): ?string
     {
-        return $this->cookies[$name] ?? NULL;
+        return $this->cookies[$name] ?? null;
     }
 
     public function get_cookies(): array
     {
         return $this->cookies;
     }
-
 }

@@ -27,18 +27,29 @@ CREATE TABLE users (
   updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
--- (Optionnel) sessions/refresh tokens
-CREATE TABLE user_sessions (
-  id            BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-  user_id       BIGINT UNSIGNED NOT NULL,
-  refresh_jti   CHAR(36)        NOT NULL,  -- UUID
-  user_agent    VARCHAR(255)    NULL,
-  ip_addr       VARBINARY(16)   NULL,      -- IPv4/IPv6
-  created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  expires_at    DATETIME        NOT NULL,
-  UNIQUE KEY uq_refresh (refresh_jti),
+CREATE TABLE sessions (
+  sid        CHAR(64)        PRIMARY KEY,
+  user_id    BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME        NOT NULL,
   KEY idx_user (user_id),
-  CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  KEY idx_expires (expires_at),
+  CONSTRAINT fk_cookie_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE permissions (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(100) UNIQUE NOT NULL, -- Ex: 'create:cocktail', 'read:cocktail'
+    description TEXT
+) ENGINE=InnoDB;
+
+CREATE TABLE role_permissions (
+    role_id      INT UNSIGNED NOT NULL,
+    permission_id INT UNSIGNED NOT NULL,
+    expires_at   DATETIME,
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
