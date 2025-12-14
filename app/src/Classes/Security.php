@@ -56,8 +56,18 @@ class Security
         return null;
     }
 
-    public function generate_session_id(): string
+    public function generate_session_id_for_user(SessionUser $user): string
     {
-        return bin2hex(random_bytes(32));
+        $sid = bin2hex(random_bytes(32));
+
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO sessions (sid, user_id) VALUES (:sid, :user_id)",
+        );
+        $stmt->execute([
+            "sid" => $sid,
+            "user_id" => $user->id,
+        ]);
+
+        return $sid;
     }
 }

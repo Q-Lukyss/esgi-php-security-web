@@ -19,31 +19,52 @@ use Flender\Dash\Response\RedirectResponse;
 use Flender\Dash\Response\Response;
 use PDO;
 
+class LoginBody implements IVerifiable
+{
+    public function __construct(
+        public readonly string $username = "",
+        public readonly string $password = "",
+    ) {}
 
-class LoginBody implements IVerifiable {
-    public function __construct(private string $username = "", private string $password = "") {}
-
-    public function verify(): array {
+    public function verify(): array
+    {
         $errors = [];
-        if (empty($this->username)) array_push($errors, "Username can't be empty");
-        if (empty($this->password)) array_push($errors, "Password can't be empty");
+        if (empty($this->username)) {
+            array_push($errors, "Username can't be empty");
+        }
+        if (empty($this->password)) {
+            array_push($errors, "Password can't be empty");
+        }
         return $errors;
     }
 }
 
-class AuthController extends Controller {
-
+class AuthController extends Controller
+{
     public function __construct(private ILogger $logger) {}
 
-    #[Route(Method::GET, "/me", middlewares: [new RateLimiter(40), SecurityMiddleware::class], permissions: ["test"]) ]
-    public function me(?SessionUser $user) {
+    #[
+        Route(
+            Method::GET,
+            "/me",
+            middlewares: [new RateLimiter(40), SecurityMiddleware::class],
+            permissions: ["test"],
+        ),
+    ]
+    public function me(?SessionUser $user)
+    {
         $content = print_r($user, true);
         return new HtmlResponse("<pre>$content</pre>");
     }
 
     #[Route(Method::POST, "/login")]
-    public function login(Security $security, PDO $pdo, LoginBody $body, Response $res, CSRF $csrf) {
-        
+    public function login(
+        Security $security,
+        PDO $pdo,
+        LoginBody $body,
+        Response $res,
+        CSRF $csrf,
+    ) {
         $errors = $body->verify();
         if ($errors !== []) {
             return new JsonResponse($errors, 400);
@@ -51,23 +72,30 @@ class AuthController extends Controller {
 
         // Get password of user
         // Test hash with password
-
-        // If true, generate sid
-        // Update fields (sid + time) in DB
+        $user = $security->get_user($body->username, $body->password);
+        if ($user === null) {
+            return new JsonResponse(["error" => "Invalid credentials"], 401);
+        }
 
         // Return cookie
-        $sid = $security->generate_session_id();
-        
-        $res->add_cookie(CookieFactory::create(SecurityMiddleware::SESSION_NAME, $sid));
+        $sid = $security->generate_session_id_for_user($user->id);
+        $security->create_session($sid, $user->id);
+        $csrf->generate();
+
+        $res->add_cookie(
+            CookieFactory::create(SecurityMiddleware::SESSION_NAME, $sid),
+        );
 
         return new HtmlResponse("<pre>$sid</pre>");
     }
 
     #[Route(Method::GET, "/logout", middlewares: [SecurityMiddleware::class])]
-    public function logout(Response $res, SessionUser $user) {
+    public function logout(Response $res, SessionUser $user)
+    {
         $this->logger->info("User logout", ["user_id" => $user->id]);
-        $res->remove_cookie(CookieFactory::empty(SecurityMiddleware::SESSION_NAME));
+        $res->remove_cookie(
+            CookieFactory::empty(SecurityMiddleware::SESSION_NAME),
+        );
         return new RedirectResponse("home");
     }
-
 }
