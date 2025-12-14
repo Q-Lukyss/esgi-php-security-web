@@ -29,22 +29,21 @@
 <body>
 
     <?php
-    include "components/topbar.php";
-    include "components/navbar.php";
+    include 'components/topbar.php';
+    include 'components/navbar.php';
     ?>
 
     <!-- MAIN content -->
-    <?php include "components/cocktails-table.php"; ?>
-    <!-- <?php var_dump($cocktails); ?> -->
-
+     <h1>Druide Detail page</h1>
+    <?php var_dump($druide) ?>
 
     <!-- END -->
-
+    
 
 
     <?php
-    include "components/footer.html";
-    include "components/backtotop.html";
+    include 'components/footer.html';
+    include 'components/backtotop.html';
     ?>
 
 
@@ -67,7 +66,7 @@
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
-    <script src="js/cocktail-table.js"></script>
+    <script src="js/druide-table.js"></script>
 </body>
 
 </html>

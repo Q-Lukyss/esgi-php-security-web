@@ -2,8 +2,10 @@
 /** @var array $druides */
 
 // petite utilitaire pour échapper proprement
-function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); }
-
+function e(string $s): string
+{
+    return htmlspecialchars($s, ENT_QUOTES, "UTF-8");
+}
 // function pickAssoc(array $row): array {
 //   $get = function($k) use ($row) {
 //     if (array_key_exists($k, $row)) return $row[$k];
@@ -26,7 +28,9 @@ function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8')
 
 <div class="container my-4">
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h5 id="druideLength" class="mb-0"><?= count($druides ?? []) ?> Druides(s)</h5>
+    <h5 id="druideLength" class="mb-0"><?= count(
+        $druides ?? [],
+    ) ?> Druides(s)</h5>
     <input id="druideSearch" type="search" class="form-control" placeholder="Chercher un Druide...">
   </div>
 
@@ -45,16 +49,16 @@ function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8')
             <?php $c = $row; ?>
             <tr>
               <td class="font-weight-600">
-                <?= e((string)$c['avatar_url']) ?>
-                <a href="<?= 'druides/' . urlencode((string)$c['id']) ?>">
-                  <?= e((string)$c['display_name']) ?>
+                <?= e((string) $c["avatar_url"]) ?>
+                <a href="<?= "druides/" . urlencode((string) $c["id"]) ?>">
+                  <?= e((string) $c["display_name"]) ?>
                 </a>
               </td>
               <td>
-                <?= e((string)$c['role']) ?>
+                <?= e((string) $c["role"]) ?>
               </td>
               <td>
-                <?= e((string)$c['bio']) ?>
+                <?= e((string) $c["bio"]) ?>
               </td>
             </tr>
           <?php endforeach; ?>

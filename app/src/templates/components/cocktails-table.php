@@ -2,8 +2,10 @@
 /** @var array $cocktails */
 
 // petite utilitaire pour échapper proprement
-function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); }
-
+function e(string $s): string
+{
+    return htmlspecialchars($s, ENT_QUOTES, "UTF-8");
+}
 // function pickAssoc(array $row): array {
 //   // on ne garde que les clés utiles, en priorisant les clés associatives
 //   $get = function($k) use ($row) {
@@ -28,8 +30,14 @@ function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8')
 
 <div class="container my-4">
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h5 id="cocktailsLength" class="mb-0"><?= count($cocktails ?? []) ?> Potion(s)</h5>
+    <h5 id="cocktailsLength" class="mb-0"><?= count(
+        $cocktails ?? [],
+    ) ?> Potion(s)</h5>
     <input id="cocktailSearch" type="search" class="form-control" placeholder="Rechercher une Potion...">
+
+    <a class="btn btn-primary" href="/cocktails/new">
+        <i class="fa fa-plus mr-2"></i>Ajouter
+    </a>
   </div>
 
   <div class="table-responsive">
@@ -49,25 +57,31 @@ function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8')
             <?php $c = $row; ?>
             <tr>
               <td class="font-weight-600">
-                <a href="<?= 'cocktails/' . urlencode((string)$c['slug']) ?>">
-                  <?= e((string)$c['name']) ?>
+                <a href="<?= "cocktails/" . urlencode((string) $c["slug"]) ?>">
+                  <?= e((string) $c["name"]) ?>
                 </a>
               </td>
-              <td class="d-none d-lg-table-cell"><?= (string)$c['username'] ?></td>
+              <td class="d-none d-lg-table-cell"><?= (string) $c[
+                  "username"
+              ] ?></td>
               <td class="d-none d-lg-table-cell">
-                <?= e((string)$c['created_at']) ?>
+                <?= e((string) $c["created_at"]) ?>
               </td>
               <td>
-                <div class="text-truncate-2" title="<?= e((string)$c['description']) ?>">
-                  <?= e((string)$c['description']) ?>
+                <div class="text-truncate-2" title="<?= e(
+                    (string) $c["description"],
+                ) ?>">
+                  <?= e((string) $c["description"]) ?>
                 </div>
               </td>
               <td>
                 <div class="btn-group btn-group-sm" role="group">
-                  <a class="btn btn-outline-secondary" href="<?= 'cocktails/' . urlencode((string)$c['slug']) ?>">
+                  <a class="btn btn-outline-secondary" href="<?= "cocktails/" .
+                      urlencode((string) $c["slug"]) ?>">
                     Voir
                   </a>
-                  <a class="btn btn-outline-primary" href="<?= 'cocktails/edit/' . (string)$c['slug'] ?>">
+                  <a class="btn btn-outline-primary" href="<?= "cocktails/edit/" .
+                      (string) $c["slug"] ?>">
                     Éditer
                   </a>
                 </div>

@@ -7,8 +7,8 @@ use Flender\Dash\Enums\Method;
 
 use PDO;
 
-class UserController extends Controller {
-
+class UserController extends Controller
+{
     // Connexion / Inscription
     // Edition Profil Pour utilisateur connecté
 
@@ -21,10 +21,10 @@ class UserController extends Controller {
     // #[Route(Method::POST, "/profile")]
     // inscription
 
-
-    #[Route(Method::GET, "/druides")]
     // liste des cocktails
-    public function druides(PDO $pdo) {
+    #[Route(Method::GET, "/druides")]
+    public function druides(PDO $pdo)
+    {
         $sql = 'SELECT id, role, display_name, bio, avatar_url
                 FROM users u
                 ORDER BY created_at DESC';
@@ -38,7 +38,23 @@ class UserController extends Controller {
         ]);
     }
 
+    // liste des cocktails
+    #[Route(Method::GET, "/druides/:id")]
+    public function druide_detail(PDO $pdo, string $id)
+    {
+        $sql = 'SELECT id, role, display_name, bio, avatar_url
+                FROM users u
+                WHERE id = ?
+                ORDER BY created_at DESC';
+        $sth = $pdo->prepare($sql);
+        $sth->execute([$id]);
+        $druide = $sth->fetch(PDO::FETCH_ASSOC);
 
+        return $this->render("druides", [
+            "title" => "Profil " . $druide["display_name"],
+            "druide" => $druide,
+        ]);
+    }
 
     // #[Route(Method::GET, "/json/:id")]
     // public function json(int $id) {
@@ -49,7 +65,6 @@ class UserController extends Controller {
     // public function greet(string $name) {
     //     return "Hello $name";
     // }
-    
 
     // #[Route(Method::GET, "/home")]
     // public function home() {
@@ -63,5 +78,4 @@ class UserController extends Controller {
     // public function redirect() {
     //     return new RedirectResponse(BASE_URL."/home");
     // }
-
 }
